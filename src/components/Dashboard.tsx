@@ -12,11 +12,17 @@ import type { AttackEvent } from "@/lib/types";
 import { num, money } from "@/lib/format";
 
 const INITIAL_ASSETS: Asset[] = [
-  { sym: "USDT", name: "TetherUS", amt: 2_500_000, price: 1.0, chg: 0.01 },
-  { sym: "ETH", name: "Ethereum", amt: 0, price: 3120.4, chg: -1.24 },
-  { sym: "BNB", name: "BNB", amt: 0, price: 612.75, chg: 0.86 },
+  { sym: "USDT", name: "TetherUS", amt: 2_500_000, price: 1.0, chg: 0 },
+  { sym: "ETH", name: "Ethereum", amt: 0, price: 3120.4, chg: 0 },
+  { sym: "BNB", name: "BNB", amt: 0, price: 612.75, chg: 0 },
 ];
 const BASE = 2_500_000;
+// Real "Today's PnL" derived from the on-chain balance vs the funded baseline.
+const pnlFrom = (usdt: number) => {
+  const d = usdt - BASE;
+  const pct = BASE ? (d / BASE) * 100 : 0;
+  return { text: `${d >= 0 ? "+" : "-"} $${money(Math.abs(d))} (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%)`, down: d < 0 };
+};
 const emptyTrace: TraceState = {
   steps: { sign: "idle", delegate: "idle", verify: "idle", sweep: "idle" },
   nonces: { start: 0, signedUpto: 0, matchIndex: null, show: false },
@@ -27,7 +33,7 @@ const emptyTrace: TraceState = {
 export function Dashboard() {
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
   const [hidden, setHidden] = useState(false);
-  const [pnl, setPnl] = useState({ text: "+ $312.80 (+0.01%)", down: false });
+  const [pnl, setPnl] = useState(pnlFrom(BASE));
   const [alert, setAlert] = useState<string | null>(null);
   const [hitSym, setHitSym] = useState<string | null>(null);
   const [draining, setDraining] = useState(false);
@@ -35,6 +41,7 @@ export function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trace, setTrace] = useState<TraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [live, setLive] = useState(false);
   const [dbState, setDbState] = useState("READY");
   const [disabled, setDisabled] = useState(true);
@@ -45,13 +52,26 @@ export function Dashboard() {
   const toastId = useRef(0);
   const rafRef = useRef<number | null>(null);
 
+  // Read the victim's REAL on-chain balances and reflect them in the dashboard.
+  const applyBalance = useCallback((usdt: number, eth: number) => {
+    setAssets((prev) => prev.map((a) => (a.sym === "USDT" ? { ...a, amt: usdt } : a.sym === "ETH" ? { ...a, amt: eth } : a)));
+    setPnl(pnlFrom(usdt));
+  }, []);
+  const fetchBalance = useCallback(() => {
+    fetch("/api/balance")
+      .then((r) => r.json())
+      .then((c) => { if (c.configured) applyBalance(c.usdt ?? 0, c.eth ?? 0); })
+      .catch(() => {});
+  }, [applyBalance]);
+
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
       .then((c) => { setDisabled(!c.configured); setChain(c.chain ?? "Local anvil"); })
       .catch(() => setDisabled(true));
+    fetchBalance();
     return () => esRef.current?.close();
-  }, []);
+  }, [fetchBalance]);
 
   const usdt = assets.find((a) => a.sym === "USDT")!.amt;
   const total = assets.reduce((s, a) => s + a.amt * a.price, 0);
@@ -99,9 +119,13 @@ export function Dashboard() {
       case "setup":
         addLine(t, e.msg ?? "", "go");
         break;
-      case "before":
+      case "before": {
+        const b = num(e.victimTUSD ?? "0");
+        setAssets((a) => a.map((x) => (x.sym === "USDT" ? { ...x, amt: b } : x)));
+        setPnl(pnlFrom(b));
         addLine(t, `${e.msg}: ${e.victimTUSD} tUSD`);
         break;
+      }
       case "sign":
         openDrawer();
         activate("sign");
@@ -173,6 +197,7 @@ export function Dashboard() {
       case "done":
         addLine(t, e.msg ?? "", "ok");
         finish();
+        fetchBalance();
         break;
       case "error":
       case "fatal":
@@ -186,7 +211,7 @@ export function Dashboard() {
         if (e.msg) addLine(t, e.msg);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addLine, addToast, activate, openDrawer, setStep, tweenUSDT]);
+  }, [addLine, addToast, activate, openDrawer, setStep, tweenUSDT, fetchBalance]);
 
   const finish = useCallback(() => {
     setRunning(false);
@@ -197,14 +222,26 @@ export function Dashboard() {
 
   const reset = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    setAssets(INITIAL_ASSETS.map((a) => ({ ...a })));
     setAlert(null);
-    setPnl({ text: "+ $312.80 (+0.01%)", down: false });
     setHitSym(null);
     setDraining(false);
     setToasts([]);
     setTrace(emptyTrace);
-  }, []);
+    fetchBalance();
+  }, [fetchBalance]);
+
+  const doReset = useCallback(async () => {
+    if (running || resetting) return;
+    setResetting(true);
+    try {
+      const r = await fetch("/api/reset", { method: "POST" }).then((x) => x.json());
+      if (!r.ok) console.error("reset failed:", r.error);
+    } catch (e) {
+      console.error("reset failed:", e);
+    }
+    setResetting(false);
+    reset(); // clears the trace/alert/toasts and re-reads the fresh victim's balance
+  }, [running, resetting, reset]);
 
   const run = useCallback(() => {
     if (running) return;
@@ -240,6 +277,8 @@ export function Dashboard() {
         chain={chain}
         onRun={run}
         onTrace={openDrawer}
+        onReset={doReset}
+        resetting={resetting}
       />
     </>
   );
