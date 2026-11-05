@@ -1,3 +1,5 @@
+import { Search, Bell, UserRound, Download, Globe } from "lucide-react";
+
 const LINKS = ["Buy Crypto", "Markets", "Trade", "Futures", "Earn", "Square", "More"];
 
 function BinanceLogo() {
@@ -13,26 +15,38 @@ function BinanceLogo() {
 
 export function Nav() {
   return (
-    <header className="sticky top-0 z-40 h-16 bg-surface border-b border-line flex items-center gap-7 px-6">
-      <div className="flex items-center">
+    <header className="sticky top-0 z-40 h-16 bg-surface/95 backdrop-blur border-b border-line flex items-center gap-7 px-6">
+      <div className="flex items-center gap-2 select-none">
         <BinanceLogo />
-        <span className="ml-2 text-xl font-bold tracking-tight">BINANCE</span>
+        <span className="text-xl font-bold tracking-tight">BINANCE</span>
       </div>
-      <nav className="hidden md:flex gap-6">
+      <nav className="hidden lg:flex gap-6">
         {LINKS.map((l) => (
-          <span key={l} className="text-sm font-semibold text-ink-2 hover:text-yellow cursor-pointer whitespace-nowrap">
+          <span
+            key={l}
+            className="text-sm font-medium text-ink-2 hover:text-yellow transition-colors cursor-pointer whitespace-nowrap"
+          >
             {l}
           </span>
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-5 text-ink-3">
-        <span className="cursor-pointer hover:text-ink">🔍</span>
-        <span className="text-ink-2 font-semibold cursor-pointer hover:text-yellow">Deposit</span>
-        <span className="text-ink-2 font-semibold cursor-pointer hover:text-yellow">Wallet</span>
-        <span className="text-ink-2 font-semibold cursor-pointer hover:text-yellow hidden sm:inline">Orders</span>
-        <span className="cursor-pointer hover:text-ink">🔔</span>
-        <span className="cursor-pointer hover:text-ink">👤</span>
+      <div className="ml-auto flex items-center gap-1 text-ink-3">
+        <NavIcon><Search className="h-[18px] w-[18px]" /></NavIcon>
+        <NavIcon><Download className="h-[18px] w-[18px]" /></NavIcon>
+        <NavIcon><Globe className="h-[18px] w-[18px]" /></NavIcon>
+        <NavIcon><Bell className="h-[18px] w-[18px]" /></NavIcon>
+        <div className="ml-1 h-8 w-8 rounded-full bg-surface-fill grid place-items-center text-ink-2 hover:bg-line transition-colors cursor-pointer">
+          <UserRound className="h-[18px] w-[18px]" />
+        </div>
       </div>
     </header>
+  );
+}
+
+function NavIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="h-8 w-8 grid place-items-center rounded-md hover:bg-surface-fill hover:text-ink transition-colors">
+      {children}
+    </button>
   );
 }

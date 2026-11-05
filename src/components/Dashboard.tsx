@@ -30,6 +30,7 @@ export function Dashboard() {
   const [pnl, setPnl] = useState({ text: "+ $312.80 (+0.01%)", down: false });
   const [alert, setAlert] = useState<string | null>(null);
   const [hitSym, setHitSym] = useState<string | null>(null);
+  const [draining, setDraining] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trace, setTrace] = useState<TraceState>(emptyTrace);
@@ -161,6 +162,7 @@ export function Dashboard() {
         const drained = num(e.drained ?? "") || BASE;
         setTrace((tr) => ({ ...tr, attackerRecv: e.attackerTUSD ?? null }));
         setHitSym("USDT");
+        setDraining(true);
         setPnl({ text: `- $${money(drained)} (-100.00%)`, down: true });
         tweenUSDT(num(e.victimTUSD ?? "0"), 2600, () =>
           addToast("ok", "Withdrawal completed", `USDT ${money(drained)} sent to external address`)
@@ -199,6 +201,7 @@ export function Dashboard() {
     setAlert(null);
     setPnl({ text: "+ $312.80 (+0.01%)", down: false });
     setHitSym(null);
+    setDraining(false);
     setToasts([]);
     setTrace(emptyTrace);
   }, []);
@@ -222,7 +225,7 @@ export function Dashboard() {
       <div className="max-w-shell mx-auto p-6 grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 pb-20">
         <WalletRail />
         <div className="min-w-0">
-          <BalanceCard usdt={usdt} total={total} hidden={hidden} onToggleEye={() => setHidden((h) => !h)} pnl={pnl} alert={alert} />
+          <BalanceCard usdt={usdt} total={total} hidden={hidden} draining={draining} onToggleEye={() => setHidden((h) => !h)} pnl={pnl} alert={alert} />
           <AssetsTable assets={assets} hidden={hidden} hitSym={hitSym} />
         </div>
       </div>

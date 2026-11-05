@@ -2,20 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --font-inter: "Inter"; }
 html, body { padding: 0; margin: 0; }
 body {
   background: theme(colors.surface.soft);
   color: theme(colors.ink.DEFAULT);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* thin scrollbars inside the dark trace panel */
+::selection { background: theme(colors.yellow.DEFAULT); color: theme(colors.ink.DEFAULT); }
+
+/* refined scrollbars inside dark panels */
 .scroll-dark::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-dark::-webkit-scrollbar-thumb { background: #222c38; border-radius: 8px; }
+.scroll-dark::-webkit-scrollbar-thumb { background: #243041; border-radius: 8px; }
+.scroll-dark::-webkit-scrollbar-thumb:hover { background: #2e3c4f; }
 .scroll-dark::-webkit-scrollbar-track { background: transparent; }
 
+/* number flow for the balance */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }

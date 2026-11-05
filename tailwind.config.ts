@@ -24,8 +24,8 @@ const config: Config = {
         dim: { DEFAULT: "#8B98A8", 2: "#5A6676" },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "BinancePlex", "Arial", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        sans: ["var(--font-geist-sans)", "system-ui", "Arial", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       borderRadius: { card: "12px", data: "8px", btn: "8px", chip: "6px" },
       boxShadow: {

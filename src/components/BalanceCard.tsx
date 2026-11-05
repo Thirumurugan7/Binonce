@@ -1,51 +1,78 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, ChevronDown, ShieldAlert } from "lucide-react";
 import { money } from "@/lib/format";
 
 export interface BalanceCardProps {
   usdt: number;
   total: number;
   hidden: boolean;
+  draining: boolean;
   onToggleEye: () => void;
   pnl: { text: string; down: boolean };
   alert: string | null;
 }
 
-export function BalanceCard({ usdt, total, hidden, onToggleEye, pnl, alert }: BalanceCardProps) {
+export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, alert }: BalanceCardProps) {
   return (
     <>
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[15px] font-medium text-ink-3 m-0 mb-2.5 flex items-center gap-2">
+          <h1 className="text-[13px] font-medium text-ink-3 m-0 mb-2 flex items-center gap-2">
             Estimated Balance
-            <span className="cursor-pointer text-ink-4" onClick={onToggleEye} title="Hide balance">
-              👁
-            </span>
+            <button onClick={onToggleEye} className="text-ink-4 hover:text-ink-2 transition-colors" aria-label="Toggle balance visibility">
+              {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </h1>
-          <div className="text-[30px] font-semibold tracking-[-0.5px] flex items-baseline gap-2">
-            {hidden ? "******" : money(usdt)}
-            <span className="text-sm text-ink-3 font-medium">USDT ▾</span>
+          <div className={`tnum text-[32px] leading-none font-semibold tracking-[-0.5px] flex items-baseline gap-2 transition-colors ${draining ? "text-down" : "text-ink"}`}>
+            {hidden ? "••••••" : money(usdt)}
+            <span className="inline-flex items-center gap-0.5 text-sm text-ink-3 font-medium">USDT <ChevronDown className="h-3.5 w-3.5" /></span>
           </div>
-          <div className="text-ink-3 text-sm mt-1.5">≈ ${hidden ? "******" : money(total)}</div>
-          <div className="mt-3.5 text-[13px] text-ink-3">
-            Today&apos;s PnL <b className={`font-semibold ${pnl.down ? "text-down" : "text-up"}`}>{pnl.text}</b>
+          <div className="text-ink-3 text-[13px] mt-2 tnum">≈ ${hidden ? "••••••" : money(total)}</div>
+          <div className="mt-3 text-[13px] text-ink-3">
+            Today&apos;s PnL <span className={`font-semibold ${pnl.down ? "text-down" : "text-up"}`}>{pnl.text}</span>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <button className="rounded-btn px-5 py-2.5 font-semibold text-sm bg-yellow text-ink hover:bg-yellow-hi">Deposit</button>
-          <button className="rounded-btn px-5 py-2.5 font-semibold text-sm bg-surface-fill text-ink hover:bg-[#EEEEF0]">Withdraw</button>
-          <button className="rounded-btn px-5 py-2.5 font-semibold text-sm bg-surface-fill text-ink hover:bg-[#EEEEF0]">Transfer</button>
+          <ActionButton primary icon={<ArrowDownToLine className="h-4 w-4" />}>Deposit</ActionButton>
+          <ActionButton icon={<ArrowUpFromLine className="h-4 w-4" />}>Withdraw</ActionButton>
+          <ActionButton icon={<ArrowLeftRight className="h-4 w-4" />}>Transfer</ActionButton>
         </div>
       </div>
 
-      {alert && (
-        <div className="flex items-center gap-2.5 mt-[18px] px-3.5 py-3 bg-[#FEF0F0] border border-[#FBD4D8] rounded-data text-[#C7303F] font-medium text-[13px]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-[18px] h-[18px] flex-none">
-            <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-          </svg>
-          <span>{alert}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {alert && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2.5 mt-4 px-3.5 py-3 bg-[#FEF0F0] border border-[#FBD4D8] rounded-data text-[#C7303F] font-medium text-[13px]">
+              <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.6 }}>
+                <ShieldAlert className="h-[18px] w-[18px] flex-none" />
+              </motion.span>
+              {alert}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
+  );
+}
+
+function ActionButton({ children, icon, primary }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean }) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.96 }}
+      className={`inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] transition-colors ${
+        primary ? "bg-yellow text-ink hover:bg-yellow-hi" : "bg-surface-fill text-ink hover:bg-[#ECECEF]"
+      }`}
+    >
+      {icon}
+      {children}
+    </motion.button>
   );
 }

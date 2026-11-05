@@ -1,5 +1,8 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldAlert, CheckCircle2 } from "lucide-react";
+
 export interface ToastItem {
   id: number;
   kind: "ok" | "warn";
@@ -10,27 +13,30 @@ export interface ToastItem {
 export function Toasts({ items, shifted }: { items: ToastItem[]; shifted: boolean }) {
   return (
     <div
-      className="fixed top-[76px] z-[70] flex flex-col gap-2.5 w-[340px] max-w-[90vw] transition-[right] duration-300"
+      className="fixed top-[76px] z-[70] flex flex-col gap-2.5 w-[340px] max-w-[90vw] transition-[right] duration-300 ease-out"
       style={{ right: shifted ? 460 : 20 }}
     >
-      {items.map((t) => (
-        <div
-          key={t.id}
-          className="bg-surface border border-line rounded-[10px] px-4 py-3.5 shadow-toast flex gap-3 items-start animate-toastin"
-        >
-          <div
-            className={`w-[22px] h-[22px] flex-none rounded-full flex items-center justify-center text-[13px] ${
-              t.kind === "ok" ? "bg-[#E6F9F1] text-up" : "bg-[#FEF0F0] text-down"
-            }`}
+      <AnimatePresence initial={false}>
+        {items.map((t) => (
+          <motion.div
+            key={t.id}
+            layout
+            initial={{ opacity: 0, x: 60, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 60, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            className="bg-surface border border-line rounded-[10px] px-4 py-3.5 shadow-toast flex gap-3 items-start"
           >
-            {t.kind === "ok" ? "✓" : "!"}
-          </div>
-          <div>
-            <b className="block text-[13px] font-semibold">{t.title}</b>
-            <span className="text-ink-3 text-[12.5px]">{t.sub}</span>
-          </div>
-        </div>
-      ))}
+            <div className={`h-6 w-6 flex-none rounded-full grid place-items-center ${t.kind === "ok" ? "bg-[#E6F9F1] text-up" : "bg-[#FEF0F0] text-down"}`}>
+              {t.kind === "ok" ? <CheckCircle2 className="h-[15px] w-[15px]" /> : <ShieldAlert className="h-[15px] w-[15px]" />}
+            </div>
+            <div>
+              <div className="font-semibold text-[13px] leading-tight">{t.title}</div>
+              <div className="text-ink-3 text-[12.5px] mt-0.5">{t.sub}</div>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
