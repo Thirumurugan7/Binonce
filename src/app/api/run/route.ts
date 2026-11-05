@@ -20,6 +20,12 @@ export async function GET() {
     },
   });
   return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" },
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      // prevent proxy/server buffering so paced events flush immediately (also in `next start`)
+      "X-Accel-Buffering": "no",
+    },
   });
 }
