@@ -1,6 +1,6 @@
 # Binonce design system
 
-Binonce replays the Oct 29 2026 Binance EIP-7702 hot-wallet drain on a real chain, records every sweeper it
+Binonce replays EIP-7702 wallet drains on a real chain (the Oct 29 2026 Binance hot-wallet drain is the lead case), records every sweeper it
 sees to a public registry on Arkiv, and walks through the Chainwall defense. This file covers the brand
 (landing page and our own surfaces). Live reference: **`/styleguide`**.
 
@@ -123,14 +123,15 @@ shows invented addresses or hashes.
 ## Landing page
 
 1. **Hero**: the thesis next to a metrics board: the incident's figures counting up (sourced), and a live count of contracts in the Arkiv Blacklist.
-2. **Incident timeline**: pinned while you scroll; each quarter of the scroll reveals the next of four dated moments (click or arrow keys jump), with sources.
-3. **How the drain works**: four steps with a sticky visual, then two hands-on explainers: *Why sign 50?*
+2. **Cases**: real EIP-7702 drains since Pectra, each with its source, split into the two attack paths (leaked key + sweeper, phishing batch) and marked when the replay runs that path. Binance is the featured row.
+3. **Binance timeline**: pinned while you scroll; each quarter of the scroll reveals the next of four dated moments (click or arrow keys jump), with sources.
+4. **How the drain works**: four steps with a sticky visual, then two hands-on explainers: *Why sign 50?*
    (drag the wallet's nonce and see which authorization lands, or none) and *Read the 23 bytes* (hover the
    designator, or paste your own `eth_getCode` result).
-4. **Inside the replay**: owner view next to the chain log, using the replay's real copy.
-5. **Defense**: a switch comparing a plain hot wallet with one behind the Lock, then the three layers with honest status.
-6. **Blacklist**: the importer's real labelling rules as a classifier you can play with, plus a runnable query.
-7. **Run it yourself**: commands and calls to action.
+5. **Inside the replay**: owner view next to the chain log, using the replay's real copy.
+6. **Defense**: a switch comparing a plain hot wallet with one behind the Lock, then the three layers with honest status.
+7. **Blacklist**: the importer's real labelling rules as a classifier you can play with, plus a runnable query.
+8. **Run it yourself**: commands and calls to action.
 
 Copy rules: no italic-word-in-every-headline, no numbered section kickers, no rhetorical one-liners. Say what
 happens, cite where the numbers come from, and mark what isn't built.
