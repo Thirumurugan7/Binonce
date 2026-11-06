@@ -10,7 +10,7 @@ Needs [Foundry](https://getfoundry.sh) (`anvil`) and Node 18+.
 npm install
 npm run chain        # terminal 1: anvil --hardfork prague  (real 7702 support, chainId 31337)
 npm run setup        # terminal 2: deploys TestUSD + Sweeper, writes .env
-npm run dev          # http://localhost:3000  → click "Launch attack"
+npm run dev          # http://localhost:3000/attack  → click "Launch attack"
 ```
 
 Every click uses a fresh victim (minted 2,500,000 tUSD) and drains it — repeatable, instant.
