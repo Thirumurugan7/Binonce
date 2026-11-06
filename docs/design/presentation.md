@@ -42,7 +42,7 @@ was really happening underneath." See [ui-ux.md](./ui-ux.md).
 3. **The three parts (90s)** —
    - 🔒 **The Lock** (Chainwall): same stolen key against a guarded account → rejected, because it
      holds funds in a contract (no EOA for 7702) and only pre-approved actions execute. (Show the
-     `OKGuard` revert, or the diagram if the fork isn't wired yet.)
+     `OKGuard` revert, or step through the vault walkthrough if the fork isn't wired yet.)
    - 📕 **The Blacklist** (Arkiv): a public, queryable list of sweeper contracts; run a live query.
    - 🚨 **The Alarm** (Chainlink CRE): detects the delegation and fires on-chain.
 4. **Close (30s)** — "A valid signature is not an approved action." One line on what's next (ship The Lock on Arbitrum).

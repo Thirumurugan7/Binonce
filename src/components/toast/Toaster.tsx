@@ -6,14 +6,20 @@ import { CheckCircle2, AlertTriangle, XCircle, Info, X, ArrowUpRight } from "luc
 import { Mark } from "@/components/brand";
 import { subscribe, snapshot, serverSnapshot, toast, type Toast } from "./store";
 
-/** Renders the toast stack. Mount once per page. */
+/** Renders the toast stack. Mount once per page. Sits bottom-left on desktop so it never
+ *  covers the step panels on the right; at most three show at once. */
 export function Toaster() {
   const items = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+  const shown = items.slice(-3);
+  const hidden = items.length - shown.length;
   return (
     <div aria-live="polite" aria-relevant="additions text"
-      className="fixed z-[120] top-[76px] right-3 left-3 sm:left-auto sm:right-5 sm:w-[380px] flex flex-col gap-2.5 pointer-events-none">
+      className="fixed z-[120] flex flex-col gap-2.5 pointer-events-none
+                 top-[72px] inset-x-3
+                 sm:top-auto sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[360px]">
+      {hidden > 0 && <div className="order-first sm:order-none sm:-mb-1 text-[11.5px] text-bn-muted px-1 pointer-events-none">+{hidden} more</div>}
       <AnimatePresence initial={false}>
-        {items.map((t) => <ToastCard key={t.id} t={t} />)}
+        {shown.map((t) => <ToastCard key={t.id} t={t} />)}
       </AnimatePresence>
     </div>
   );
@@ -45,7 +51,7 @@ function ToastCard({ t }: { t: Toast }) {
   const timed = Number.isFinite(t.duration);
   return (
     <motion.div layout
-      initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, x: 40, transition: { duration: 0.18 } }}
+      initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16 } }}
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}
       role={t.kind === "error" ? "alert" : "status"}

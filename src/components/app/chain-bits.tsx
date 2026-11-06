@@ -7,6 +7,14 @@ import { shortAddr } from "@/lib/format";
 export type TraceStatus = "idle" | "active" | "done" | "fail";
 export interface ConsoleLine { t: number; msg: string; kind?: "hot" | "ok" | "go"; tx?: string }
 
+/** One step of a run, written for someone new to EIP-7702. */
+export interface Step<K extends string> {
+  key: K;
+  title: string;      // short label
+  now: string;        // one plain sentence: what is happening
+  why: string;        // how it works, in plain words
+}
+
 export function NightBox({ label, tag, tone, children }: { label: string; tag?: string; tone?: "ember" | "seal"; children: ReactNode }) {
   const border = tone === "ember" ? "border-bn-ember-glow/40 bg-bn-ember/[0.07]" : tone === "seal" ? "border-bn-seal-glow/40 bg-bn-seal-glow/[0.06]" : "border-bn-night-line bg-bn-night-2/70";
   return (

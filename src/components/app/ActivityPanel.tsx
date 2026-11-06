@@ -9,10 +9,12 @@ interface Delegation { key: string; chain: string; victim: string; delegate: str
 interface Mint { key: string; chain: string; to: string; amount: string; tx: string; block: string; ts: string }
 interface Delegate { key: string; chain: string; address: string; label: string; labelSource?: string; delegatorCount: string; bytecodeHash: string; firstSeenBlock: string }
 interface ActivityResp {
-  enabled: boolean; writes?: boolean; error?: string; writer: string | null;
+  enabled: boolean; writes?: boolean; error?: string; stale?: boolean; writer: string | null;
   delegations: Delegation[]; mints: Mint[]; delegates: Delegate[];
   explorer: string;
 }
+
+const hasContent = (d?: ActivityResp | null) => !!d && (d.delegations.length + d.mints.length + d.delegates.length > 0);
 
 type Feed =
   | { kind: "attack"; key: string; ts: number; d: Delegation }
@@ -23,12 +25,16 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
   const [data, setData] = useState<ActivityResp | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback((retries = 2) => {
     setLoading(true);
     fetch("/api/arkiv/activity")
       .then((r) => r.json())
-      .then((d: ActivityResp) => setData(d))
-      .catch(() => setData(null))
+      .then((d: ActivityResp) => {
+        // Never blank out good data with a transient empty/errored read; retry a cold miss once.
+        setData((prev) => (hasContent(prev) && !hasContent(d) ? prev : d));
+        if ((!d.enabled || !hasContent(d)) && retries > 0) setTimeout(() => load(retries - 1), 1200);
+      })
+      .catch(() => { if (retries > 0) setTimeout(() => load(retries - 1), 1200); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -55,7 +61,7 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
             <Database className="h-3.5 w-3.5" />
             {data?.writer ? <>written by <a className="font-mono hover:text-bn-ink underline decoration-bn-line underline-offset-2" href={`${data.explorer}/address/${data.writer}`} target="_blank" rel="noopener noreferrer">{shortAddr(data.writer)}</a></> : "Arkiv"}
           </span>
-          <button onClick={load} className="bn-focus h-8 w-8 grid place-items-center rounded-full text-bn-muted hover:text-bn-ink hover:bg-bn-ink/[0.06] transition-colors" aria-label="Refresh">
+          <button onClick={() => load()} className="bn-focus h-8 w-8 grid place-items-center rounded-full text-bn-muted hover:text-bn-ink hover:bg-bn-ink/[0.06] transition-colors" aria-label="Refresh">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>

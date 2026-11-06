@@ -30,7 +30,7 @@ precise mono, and one alarming colour. It looks like evidence, which is what a r
 - **Night** is what the chain records: signatures, the delegation marker, the sweep.
 - **Ember** is the breach, the one thing that changed.
 
-The landing page alternates the two. The attack page is a picture of the attack: three accounts (attacker with the leaked key → hot wallet → attacker's wallet) with the two real transactions drawn as arrows between them, transaction links on the arrows, balances moving, and one caption saying what is happening. Under it sit the live log and a run summary for judges (owner approvals 0, gas paid by owner 0, transactions, time). Every stage of a run also raises a toast that goes from loading to done, with its transaction link. The defense page uses the step walkthrough until its live run is reconnected.
+The landing page alternates the two. The attack page plays the drain out on a stand-in exchange portfolio: a balance card, assets, a session chart and a recent-transactions list on the left, which react live as the run proceeds (the balance drains, security flips to "account compromised", the unapproved withdrawal lands in the history). A dark side panel on the right shows what the attacker is doing, EIP-7702 step by step, with each step's on-chain proof (the 50 signatures, the transaction links, the new account code). Under it sit the live log and a run summary for judges (owner approvals 0, gas paid by owner 0, transactions, time). Every stage of a run also raises a toast that goes from loading to done, with its transaction link. The defense page uses the same portfolio layout for a Chainwall vault and runs as a guided click-through walkthrough (fund → payout → hijack → detect → refuse) until its live on-chain run is reconnected; its amounts are illustrative and labelled as such.
 
 **Mark.** Nine authorizations signed at consecutive nonces: eight spent spares (dots) and one that lands (the
 ember square, top-left). In the replay the matching nonce is always the first. It animates once in the
@@ -114,7 +114,7 @@ Brand primitives are in `src/components/brand/`, and the landing sections are in
 | `Hl` | Marker highlight for one key phrase per section; sweeps in on scroll, same colours as text selection (`--bn-hl`) |
 | `toast` / `Toaster` | `src/components/toast`: `toast.loading(...)` then `toast.success/error(..., id)` turns a pending toast into its result; auto-dismiss pauses on hover |
 
-App components live in `src/components/app/`: `AppNav`, `AttackStage` + `RunSummary` (attack flow diagram), `Walkthrough` (step tracker + plain-language narrator + on-chain evidence), `Terminal` (the live log, always visible), `MoneyPanel` (victim/vault vs attacker balances + notifications), `AttackTrace` / `DefenseTrace` (step copy and evidence), `ActivityPanel` (Arkiv record), `MintModal`, `SetupNotice`.
+App components live in `src/components/app/`: `AppNav`, `portfolio/Portfolio` (the exchange view: sidebar, balance card, assets table, transaction history, shared by both pages), `StepsPanel` (the dark, expandable step panel with per-step evidence), `RunSummary` (judge numbers + `phaseOf`), `Terminal` (the live log, always visible), `AttackTrace` / `DefenseTrace` (step copy and the per-step evidence renderers), `ActivityPanel` (Arkiv record), `MintModal`, `SetupNotice`.
 
 Conventions: no raw hex in components; focus is a 2px ember outline (`.bn-focus`, or any focusable
 inside `.bn-scope`); touch targets are at least 40px; every illustration is labelled as one and never
