@@ -1,12 +1,17 @@
-# Chainwall × Binance EIP-7702 Attack Demo
+# Chainwall × Binance EIP-7702 — Attack & Defense Demo
 
-A **Next.js + Tailwind** app that executes the **real** Oct 29 2026 Binance EIP-7702 hot-wallet
-drain — on-chain — inside a faithful Binance wallet UI. The attack half of the ETHGlobal Mumbai
-project (**The Blacklist / The Lock / The Alarm**); the thing The Lock defends against.
+A **Next.js + Tailwind** app that runs **both halves** of the EIP-7702 story on-chain, inside a
+faithful Binance wallet UI:
 
-This is **not** a UI animation. "Launch attack" deploys real contracts, signs 50 real EIP-7702
-authorizations, broadcasts a real type-4 transaction, delegates the victim account to a sweeper
-(`0xef0100…`), and drains it — streaming real tx hashes and block numbers as it goes.
+- **`/` — the attack.** Executes the real Oct 29 2026 Binance EIP-7702 hot-wallet drain.
+- **`/defense` — the defense.** Runs the real **Chainwall** (The Lock) protocol that stops it.
+
+This is **not** a UI animation. On the attack page, "Launch attack" deploys real contracts, signs
+50 real EIP-7702 authorizations, broadcasts a real type-4 transaction, delegates the victim account
+to a sweeper (`0xef0100…`), and drains it. On the defense page, "Run defense" stands up a real
+Chainwall tenant, funds a governed vault, runs a genuine 2-of-2 payout, then has an attacker try the
+same 7702 hijack — and watches the on-chain guard **refuse** it. Both stream real tx hashes and
+block numbers as they go.
 
 ## Run it (local, no gas, no faucet)
 
@@ -35,35 +40,125 @@ npm run dev          # "Launch attack" now runs on Sepolia
 
 Only the **relayer** needs ETH; the victim is generated per-run and minted test tUSD (open mint).
 
+## Run the defense (`/defense`)
+
+The defense page drives the real [Chainwall](https://github.com/okcontract/chainwall) protocol, which
+needs the real Arbitrum One infrastructure (Safe 1.3.0, EntryPoint v0.8, USDC). It therefore runs
+against a **local anvil fork of Arbitrum One**, not the blank attack chain:
+
+```bash
+# in the chainwall repo: fork Arbitrum One at the current block + deploy the factory family
+sh local/up.sh            # anvil fork on :8546 (chain 42161) + OKFactory + background traffic
+```
+
+Point the app at it via `.env`, then open `/defense` and click **Run defense**:
+
+```bash
+DEFENSE_RPC=http://127.0.0.1:8546          # the Arbitrum-One fork
+DEFENSE_FACTORY=0x9DA61baA639778e193Ff08a06E07c62dEDBa5813   # deterministic OKFactory
+CHAINWALL_DIR=/path/to/chainwall           # repo holding local/e2e_stream.py
+```
+
+`src/app/api/defense-config` reports readiness; `/defense` only enables the button when the fork and
+factory are live. The fork prunes old state after ~2h ("missing trie node") — re-run `up.sh` to
+refresh it.
+
+> Both offense and defense can also share **one** chain: point the attack's `CHAIN_RPC`/`CHAIN_ID` at
+> the same `:8546` fork (chain `42161`) and fund its relayer. The attack is self-contained, the fork
+> is Prague, so 7702 works there too.
+
 ## How it works
+
+The app has two independent flows. Both are real on-chain runs streamed to the UI over SSE; neither
+is scripted animation.
+
+### ⚔️ Offense — the attack (`/`)
+
+Why it works: a delegated EOA's code is exactly 23 bytes, `0xef0100 ‖ delegate`. A single valid
+signature at the account's current nonce is enough to install that delegation — no transaction from
+the victim, no gas from the victim, no approval dialog. Whoever holds the key can make the wallet
+*become* a contract that drains itself.
 
 ```
 Launch attack ──► /api/run (SSE) ──► src/lib/attack.ts
-  fresh victim ← mint 2,500,000 tUSD (relayer pays gas)
-  victim signs 50 authorizations at consecutive nonces → delegate = Sweeper
-  relayer broadcasts one type-4 tx carrying all 50
-  one nonce matches → victim code = 0xef0100 + sweeper  (verified via getCode)
-  relayer calls sweepToken(tUSD) on the victim → drained to attacker
-  every step streams to the UI with real tx hashes + blocks
+  1 Sign      fresh victim ← mint 2,500,000 tUSD (relayer pays gas)
+              victim signs 50 authorizations at consecutive nonces → delegate = Sweeper
+              (signatures only — nothing on-chain yet, no gas)
+  2 Broadcast relayer wraps all 50 into ONE type-4 tx and broadcasts it (relayer pays gas)
+  3 Hijack    the one authorization at the victim's current nonce takes effect
+              → victim code = 0xef0100 + sweeper   (verified live via eth_getCode)
+  4 Drain     relayer calls sweepToken(tUSD) through the hijacked account
+              → entire balance moved to the attacker in one on-chain call
+  every step streams real tx hashes + block numbers to the modal
 ```
+
+The other 49 authorizations are the attacker's safety net: only the one matching the current nonce
+lands, the rest guarantee a hit if the nonce advances before broadcast. No anvil cheat codes — real
+deploy, open-mint token, relayer-paid gas; so it runs unchanged on a Prague/Pectra testnet (see
+*Run it on Sepolia*).
+
+### 🛡️ Defense — Chainwall / The Lock (`/defense`)
+
+The fix is not to detect bad signatures — a forged signature can look perfectly valid. The fix is to
+refuse to act for a signer whose account has *become delegated code*. Chainwall puts the treasury
+behind an on-chain control plane (factory → registry of users/groups/policies → execution engine →
+governed vault) and the engine checks every actor before it executes.
+
+```
+Run defense ──► /api/defend (SSE) ──► src/lib/defense.ts ──► spawns Chainwall local/e2e_stream.py
+                (runs on an anvil fork of Arbitrum One, chain 42161, so real Safe 1.3.0,
+                 EntryPoint v0.8 and real USDC exist)
+  1 Vault     OKFactory creates a tenant on-chain: registry, users/groups/policies,
+              execution engine, and a vault whose funds only move through approved interactions
+  2 Payout    a genuine 2-of-2 treasury policy runs end to end:
+              Alice proposes → Bob approves (threshold met) → transfer executes on-chain
+  3 Hijack    attacker 7702-delegates a vault signer (Carol) to a forged-signature "yes-contract"
+              that returns the ERC-1271 magic value (0x1626ba7e) for ANY signature
+  4 Detect    Chainwall's Delegation7702 library reads Carol's code, sees the 0xef0100‖delegate
+              designator → isDelegated = true, delegateOf = the yes-contract
+  5 Refuse    the Interact engine reverts ActorDelegated(actor, delegate) before any transfer
+              → attacker receives 0, vault balance unchanged
+```
+
+**Core primitive:** `Delegation7702.sol` detects the 23-byte `0xef0100 ‖ delegate` designator
+(`isDelegated`, `delegateOf`); the Interact engine reverts `ActorDelegated(actor, delegate)` for any
+delegated signer that governance has not explicitly allow-listed. The forged signature never gets a
+chance to be checked — the actor is rejected first.
+
+> **Note on the demo rig:** the defense flow forks Arbitrum One to borrow real mainnet USDC and uses
+> anvil cheats (`anvil_setStorageAt` / `anvil_setBalance`) to fund the vault and signers instantly,
+> so it is **fork-only** as written. The security property itself is chain-agnostic — deploy
+> Chainwall + a real test token on any EVM chain and the `ActorDelegated` guard behaves identically.
 
 ## Layout
 
 ```
-src/app/            page (Binance overview), styleguide, api/run (real attack SSE), api/config
-src/components/     Nav, WalletRail, BalanceCard, AssetsTable, Toasts, AttackTrace, DemoBar, CoinIcon, Dashboard
-src/lib/            attack.ts (real on-chain attack), chain.ts (local|Sepolia), abi.ts, types.ts, format.ts
+src/app/            / (attack), /defense (Chainwall), styleguide
+                    api/run + api/config          — attack SSE + offense config
+                    api/defend + api/defense-config — defense SSE + fork/factory readiness
+                    api/reset, api/balance, api/mint, api/arkiv/activity
+src/components/     Nav, ModeSwitch (Attack↔Defense), BalanceCard, AssetsTable, Toasts, CoinIcon
+                    Dashboard + AttackModal + DemoBar       — offense UI
+                    DefenseDashboard + DefenseModal + DefenseBar — defense UI
+                    ActivityPanel, MintModal
+src/lib/            attack.ts (on-chain attack), chain.ts (local|Sepolia|Arbitrum fork)
+                    defense.ts (spawns the Chainwall e2e), defense-types.ts
+                    deploy.ts, runtime.ts, abi.ts, mint.ts, arkiv.ts, types.ts, format.ts
 contracts/          Sweeper.sol, TestUSD.sol
-scripts/            setup.mjs (deploy + write .env)
+scripts/            setup.mjs (deploy + write .env), import.ts (Arkiv blacklist importer)
 docs/               project documentation (tracks, attack, contracts, design, setup)
 ```
+
+The defense's on-chain logic lives in the separate **Chainwall** repo (`Delegation7702.sol`, the
+Interact engine); this app drives it through `src/lib/defense.ts` → `local/e2e_stream.py`.
 
 ## Notes
 
 - Default chain is a local **anvil --hardfork prague** (chainId 31337). `CHAIN_ID=11155111` → Sepolia.
 - viem 2.44: the signed authorization's field is `address` (output) though the input is `contractAddress`.
 - The matching nonce is the victim's current nonce; the other 49 are the attacker's safety net to guarantee one lands.
-- This is the attack. The defense (Chainwall / The Lock) is documented in `docs/contracts/how-chainwall-stops-7702.md`.
+- The defense (Chainwall / The Lock) is summarized above under *How it works → Defense*; the full
+  contract-level write-up is in `docs/contracts/how-chainwall-stops-7702.md`.
 
 ## The Blacklist (Arkiv)
 
