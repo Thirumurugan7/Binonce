@@ -16,6 +16,7 @@ exchange's actual logo.
 | `binonce-logo-dark.png` | Same lockup, transparent PNG @3×, for dark backgrounds. |
 | `binonce-mark-light.png` / `binonce-mark-dark.png` | Mark only, transparent PNG @3×. |
 | `binonce-mark.gif` | Animated mark — the loading sequence: dots sign in around the ring, then the gem lands. |
+| `binonce-banner.png` | 16:9 hero banner (3840×2160) — logo, tagline, and the attack → defense hook. For README headers, social cards, slides. |
 
 The favicon (`src/app/icon.svg`) and in-app loader (`public/binonce-loader.svg`) use the same mark.
 
