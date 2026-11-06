@@ -58,21 +58,21 @@ export function MintModal({
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[90] grid place-items-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/45" onClick={() => state !== "minting" && onClose()} />
+          <div className="absolute inset-0 bg-bn-night/60 backdrop-blur-[2px]" onClick={() => state !== "minting" && onClose()} />
           <motion.div
             role="dialog" aria-modal="true" aria-label="Mint test USD"
             initial={{ opacity: 0, y: 14, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.985 }}
             transition={{ type: "spring", stiffness: 340, damping: 32 }}
-            className="relative w-full max-w-[420px] bg-surface border border-line rounded-card overflow-hidden"
-            style={{ boxShadow: "0 24px 60px -12px rgba(0,0,0,0.35)" }}
+            className="relative w-full max-w-[420px] shadow-bn-3 bg-bn-card border border-bn-line rounded-panel overflow-hidden"
+            
           >
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-line">
-              <span className="h-8 w-8 grid place-items-center rounded-md bg-surface-fill text-ink-3"><Coins className="h-[18px] w-[18px]" /></span>
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-bn-line">
+              <span className="h-8 w-8 grid place-items-center rounded-full bg-bn-paper-2 text-bn-ink-2"><Coins className="h-[18px] w-[18px]" /></span>
               <div>
-                <div className="font-semibold text-[15px] leading-none">Deposit test USD</div>
-                <div className="text-ink-4 text-[11.5px] mt-1">Mints tUSD to the demo wallet · relayer pays gas</div>
+                <div className="font-semibold text-[15px] leading-none">Top up the test wallet</div>
+                <div className="text-bn-muted text-[11.5px] mt-1">Mints open-mint test tokens · relayer pays gas</div>
               </div>
-              <button onClick={() => state !== "minting" && onClose()} className="ml-auto h-8 w-8 grid place-items-center rounded-md text-ink-4 hover:text-ink hover:bg-surface-fill transition-colors">
+              <button onClick={() => state !== "minting" && onClose()} className="ml-auto bn-focus h-9 w-9 grid place-items-center rounded-full text-bn-muted hover:text-bn-ink hover:bg-bn-ink/[0.06] transition-colors">
                 <X className="h-[18px] w-[18px]" />
               </button>
             </div>
@@ -81,54 +81,54 @@ export function MintModal({
               {state === "done" && result ? (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="h-9 w-9 grid place-items-center rounded-full bg-up/15 text-up"><Check className="h-5 w-5" strokeWidth={2.5} /></span>
+                    <span className="h-9 w-9 grid place-items-center rounded-full bg-bn-seal/10 text-bn-seal"><Check className="h-5 w-5" strokeWidth={2.5} /></span>
                     <div>
                       <div className="font-semibold text-[14px]">Minted {money(Number(result.amount))} tUSD</div>
-                      <div className="text-ink-3 text-[12.5px]">New balance {money(Number(result.balance))} tUSD</div>
+                      <div className="text-bn-muted text-[12.5px]">New balance {money(Number(result.balance))} tUSD</div>
                     </div>
                   </div>
-                  <div className="rounded-data border border-line divide-y divide-line text-[12.5px]">
+                  <div className="rounded-data border border-bn-line divide-y divide-bn-line text-[12.5px]">
                     <KV label="Transaction">
                       {explorer ? (
                         <a href={`${explorer}/tx/${result.tx}`} target="_blank" rel="noopener noreferrer" className="font-mono inline-flex items-center gap-1 hover:underline">
-                          {result.tx.slice(0, 10)}… <ArrowUpRight className="h-3.5 w-3.5 text-ink-4" />
+                          {result.tx.slice(0, 10)}… <ArrowUpRight className="h-3.5 w-3.5 text-bn-muted" />
                         </a>
                       ) : <span className="font-mono">{result.tx.slice(0, 10)}…</span>}
                     </KV>
                     <KV label="Recorded on Arkiv">
-                      {result.arkivKey ? <span className="font-mono text-ink">{result.arkivKey.slice(0, 10)}…</span>
-                        : <span className="text-ink-4">{arkiv ? "—" : "not configured"}</span>}
+                      {result.arkivKey ? <span className="font-mono text-bn-ink">{result.arkivKey.slice(0, 10)}…</span>
+                        : <span className="text-bn-muted">{arkiv ? "—" : "not configured"}</span>}
                     </KV>
                   </div>
-                  <button onClick={onClose} className="rounded-btn bg-surface-fill hover:bg-line text-ink font-semibold text-[13px] py-2.5 transition-colors">Done</button>
+                  <button onClick={onClose} className="bn-focus rounded-full border border-bn-ink/25 hover:border-bn-ink text-bn-ink font-medium text-[14px] h-11 transition-colors">Done</button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <label className="text-[12px] text-ink-3 font-medium">Amount (tUSD)</label>
+                    <label className="text-[12px] text-bn-muted font-medium">Amount (tUSD)</label>
                     <input
                       value={amount}
                       onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                       inputMode="decimal"
                       disabled={state === "minting"}
-                      className="mt-1.5 w-full tnum font-mono text-[18px] bg-surface-fill border border-line rounded-data px-3.5 py-3 outline-none focus:border-ink-4 transition-colors disabled:opacity-60"
+                      className="mt-1.5 w-full tnum font-mono text-[18px] bg-bn-paper border border-bn-line rounded-data px-3.5 py-3 outline-none focus:border-bn-ink text-bn-ink transition-colors disabled:opacity-60"
                     />
                     <div className="flex gap-2 mt-2.5">
                       {PRESETS.map((p) => (
                         <button key={p} onClick={() => setAmount(p)} disabled={state === "minting"}
-                          className={`text-[12px] font-medium rounded-chip px-2.5 py-1.5 border transition-colors ${amount === p ? "border-ink text-ink" : "border-line text-ink-3 hover:text-ink"}`}>
+                          className={`text-[12px] font-medium bn-focus rounded-full px-3 py-1.5 border transition-colors ${amount === p ? "border-bn-ink text-bn-ink" : "border-bn-line text-bn-muted hover:text-bn-ink"}`}>
                           {money(Number(p)).replace(".00", "")}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {error && <div className="text-[12.5px] text-down bg-down/10 border border-down/30 rounded-data px-3 py-2.5">{error}</div>}
-                  {!arkiv && <div className="text-[11.5px] text-ink-4">Arkiv not configured — this mint runs on-chain but won&apos;t be recorded to the registry yet.</div>}
+                  {error && <div className="text-[12.5px] text-bn-ember-ink bg-bn-ember/[0.08] border border-bn-ember/30 rounded-data px-3 py-2.5">{error}</div>}
+                  {!arkiv && <div className="text-[11.5px] text-bn-muted">Arkiv not configured — this mint runs on-chain but won&apos;t be recorded to the registry yet.</div>}
 
                   <button
                     onClick={submit} disabled={!valid || state === "minting"}
-                    className="inline-flex items-center justify-center gap-2 rounded-btn bg-yellow text-[#1E2026] hover:bg-yellow-hi font-semibold text-[13px] py-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center justify-center gap-2 bn-focus rounded-full bg-bn-ink text-bn-paper hover:bg-bn-ember-ink font-medium text-[14px] h-11 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {state === "minting" ? <><Loader2 className="h-4 w-4 animate-spin" /> Minting…</> : <>Mint {valid ? money(n).replace(".00", "") : ""} tUSD</>}
                   </button>
@@ -145,8 +145,8 @@ export function MintModal({
 function KV({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-3.5 py-2.5">
-      <span className="text-ink-3">{label}</span>
-      <span className="text-ink">{children}</span>
+      <span className="text-bn-muted">{label}</span>
+      <span className="text-bn-ink">{children}</span>
     </div>
   );
 }
