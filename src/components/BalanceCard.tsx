@@ -12,9 +12,10 @@ export interface BalanceCardProps {
   onToggleEye: () => void;
   pnl: { text: string; down: boolean };
   alert: string | null;
+  onDeposit: () => void;
 }
 
-export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, alert }: BalanceCardProps) {
+export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, alert, onDeposit }: BalanceCardProps) {
   return (
     <>
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -35,7 +36,7 @@ export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, a
           </div>
         </div>
         <div className="flex gap-2.5">
-          <ActionButton primary icon={<ArrowDownToLine className="h-4 w-4" />}>Deposit</ActionButton>
+          <ActionButton primary icon={<ArrowDownToLine className="h-4 w-4" />} onClick={onDeposit}>Deposit</ActionButton>
           <ActionButton icon={<ArrowUpFromLine className="h-4 w-4" />}>Withdraw</ActionButton>
           <ActionButton icon={<ArrowLeftRight className="h-4 w-4" />}>Transfer</ActionButton>
         </div>
@@ -63,10 +64,11 @@ export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, a
   );
 }
 
-function ActionButton({ children, icon, primary }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean }) {
+function ActionButton({ children, icon, primary, onClick }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean; onClick?: () => void }) {
   return (
     <motion.button
       whileTap={{ scale: 0.96 }}
+      onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] transition-colors ${
         primary ? "bg-yellow text-[#1E2026] hover:bg-yellow-hi" : "bg-surface-fill text-ink hover:bg-line"
       }`}
