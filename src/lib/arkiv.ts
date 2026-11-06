@@ -148,6 +148,38 @@ export async function upsertDelegate(r: DelegateRecord): Promise<string | null> 
   } catch (e) { console.error("[arkiv] upsertDelegate failed:", e); return null; }
 }
 
+/**
+ * Importer write: create or replace a delegate-registry entry with a fully
+ * computed classification (label, delegatorCount). Unlike `upsertDelegate`
+ * (which just +1s a count for the live demo), this sets the fields directly
+ * from the chain scan. Idempotent on (chain, address).
+ */
+export async function importDelegate(r: DelegateRecord): Promise<{ key: string; created: boolean } | null> {
+  if (!arkivEnabled()) return null;
+  try {
+    const c = await ctx();
+    const { eq, and } = c.query;
+    const { entities } = await c.pub
+      .select({ $key: true })
+      .from(c.Delegate)
+      .where(and(eq("chain", r.chain), eq("address", c.addr(r.address))))
+      .ownedBy(c.account.address)
+      .fetch();
+    if (entities.length > 0) {
+      const key = entities[0].$key;
+      await c.wallet.patchEntity(c.Delegate, key, {
+        set: { label: r.label, labelSource: r.labelSource ?? "", delegatorCount: r.delegatorCount, firstSeenBlock: r.firstSeenBlock, ts: r.ts },
+      });
+      return { key: key as string, created: false };
+    }
+    const { entityKey } = await c.wallet.createEntity(c.Delegate, {
+      chain: r.chain, address: c.addr(r.address), bytecodeHash: r.bytecodeHash, label: r.label,
+      labelSource: r.labelSource ?? "", delegatorCount: r.delegatorCount, firstSeenBlock: r.firstSeenBlock, ts: r.ts,
+    }, LONG(c));
+    return { key: entityKey as string, created: true };
+  } catch (e) { console.error("[arkiv] importDelegate failed:", e); return null; }
+}
+
 // ── reads ───────────────────────────────────────────────────────────────────
 const val = (cell: unknown) =>
   cell && typeof cell === "object" && "value" in (cell as object) ? String((cell as { value: unknown }).value) : "";

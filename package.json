@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "chain": "anvil --hardfork prague",
-    "setup": "node scripts/setup.mjs"
+    "setup": "node scripts/setup.mjs",
+    "import": "bun scripts/import.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
