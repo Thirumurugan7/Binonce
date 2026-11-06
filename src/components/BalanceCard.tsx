@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, ChevronDown, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, ChevronDown, ShieldAlert, ShieldCheck } from "lucide-react";
 import { money } from "@/lib/format";
 
 export interface BalanceCardProps {
@@ -12,9 +12,12 @@ export interface BalanceCardProps {
   onToggleEye: () => void;
   pnl: { text: string; down: boolean };
   alert: string | null;
+  sym?: string;
+  tone?: "danger" | "safe";
 }
 
-export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, alert }: BalanceCardProps) {
+export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, alert, sym = "USDT", tone = "danger" }: BalanceCardProps) {
+  const safe = tone === "safe";
   return (
     <>
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -27,7 +30,7 @@ export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, a
           </h1>
           <div className={`tnum text-[32px] leading-none font-semibold tracking-[-0.5px] flex items-baseline gap-2 transition-colors ${draining ? "text-down" : "text-ink"}`}>
             {hidden ? "••••••" : money(usdt)}
-            <span className="inline-flex items-center gap-0.5 text-sm text-ink-3 font-medium">USDT <ChevronDown className="h-3.5 w-3.5" /></span>
+            <span className="inline-flex items-center gap-0.5 text-sm text-ink-3 font-medium">{sym} <ChevronDown className="h-3.5 w-3.5" /></span>
           </div>
           <div className="text-ink-3 text-[13px] mt-2 tnum">≈ ${hidden ? "••••••" : money(total)}</div>
           <div className="mt-3 text-[13px] text-ink-3">
@@ -50,9 +53,9 @@ export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, a
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2.5 mt-4 px-3.5 py-3 bg-down/10 border border-down/30 rounded-data text-down font-medium text-[13px]">
+            <div className={`flex items-center gap-2.5 mt-4 px-3.5 py-3 rounded-data font-medium text-[13px] ${safe ? "bg-up/10 border border-up/30 text-up" : "bg-down/10 border border-down/30 text-down"}`}>
               <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.6 }}>
-                <ShieldAlert className="h-[18px] w-[18px] flex-none" />
+                {safe ? <ShieldCheck className="h-[18px] w-[18px] flex-none" /> : <ShieldAlert className="h-[18px] w-[18px] flex-none" />}
               </motion.span>
               {alert}
             </div>
