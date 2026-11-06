@@ -214,6 +214,8 @@ export interface Activity {
   /** true when this server can also write (ARKIV_PK set) */
   writes: boolean;
   error?: string;
+  /** true when this is a last-known-good read served because the live read failed */
+  stale?: boolean;
   writer: string | null;
   delegations: (DelegationRecord & { key: string })[];
   mints: (MintRecord & { key: string })[];
@@ -222,6 +224,9 @@ export interface Activity {
 
 // The public endpoint is rate-limited, so reads are cached briefly and refreshed after our own writes.
 let _cache: { at: number; data: Activity } | null = null;
+// The last successful read, kept indefinitely: if a later read fails (rate limit, cold start), we
+// serve this instead of an empty "couldn't reach" payload, so the UI never blanks out once it has data.
+let _lastGood: Activity | null = null;
 const TTL = 15_000;
 export function invalidateActivity() { _cache = null; }
 
@@ -267,9 +272,12 @@ export async function getActivity(): Promise<Activity> {
 
     const data = { enabled: true, writes: arkivEnabled(), writer: registryWriter(), delegations, mints, delegates };
     _cache = { at: Date.now(), data };
+    _lastGood = data;
     return data;
   } catch (e) {
     console.error("[arkiv] getActivity failed:", e);
+    // Serve the last good read if we have one (a transient failure shouldn't blank the UI).
+    if (_lastGood) return { ..._lastGood, stale: true };
     return { enabled: false, writes: arkivEnabled(), writer: registryWriter(), delegations: [], mints: [], delegates: [], error: "Couldn’t reach Arkiv. Try refreshing." };
   }
 }
