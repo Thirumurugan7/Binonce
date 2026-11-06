@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Loader2, RotateCcw } from "lucide-react";
+import { Play, Loader2, Coins } from "lucide-react";
 
 export function DemoBar({
-  state, live, running, disabled, chain, onRun, onTrace, onReset, resetting,
+  state, live, running, disabled, chain, onRun, onTrace, onMint,
 }: {
   state: string; live: boolean; running: boolean; disabled: boolean; chain: string;
-  onRun: () => void; onTrace: () => void; onReset: () => void; resetting: boolean;
+  onRun: () => void; onTrace: () => void; onMint: () => void;
 }) {
   return (
     <div className="fixed left-0 right-0 bottom-0 z-50 bg-surface/90 backdrop-blur border-t border-line">
@@ -27,13 +27,13 @@ export function DemoBar({
           Walkthrough
         </button>
         <button
-          onClick={onReset}
-          disabled={running || resetting || disabled}
-          title="Deploy a fresh token, sweeper, victim and attacker, and re-mint 2.5M"
+          onClick={onMint}
+          disabled={running || disabled}
+          title="Mint test tUSD to the demo wallet (recorded on Arkiv)"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-3 hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2 py-2"
         >
-          {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-          <span className="hidden sm:inline">{resetting ? "Resetting" : "Reset"}</span>
+          <Coins className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Mint</span>
         </button>
         <motion.button
           whileTap={{ scale: 0.97 }}

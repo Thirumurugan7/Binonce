@@ -19,6 +19,7 @@ export interface TraceState {
   sweepBlock?: number | null;
   victimCode?: string | null;
   sweeperAddr?: string | null;
+  arkivKey?: string | null;
 }
 
 type StepKey = keyof TraceState["steps"];
@@ -172,7 +173,7 @@ export function AttackModal({
                     {step.key === "sign" && <NonceGrid nonces={state.nonces} />}
                     {step.key === "delegate" && <TxCard label="Delegation transaction" hash={state.delegateTx} block={state.delegateBlock} explorer={explorer} pending={stStatus === "active"} />}
                     {step.key === "verify" && <CodeView code={state.victimCode} sweeper={state.sweeperAddr} done={stStatus === "done"} />}
-                    {step.key === "sweep" && <DrainView tx={state.sweepTx} block={state.sweepBlock} explorer={explorer} recv={state.attackerRecv} pending={stStatus === "active"} />}
+                    {step.key === "sweep" && <DrainView tx={state.sweepTx} block={state.sweepBlock} explorer={explorer} recv={state.attackerRecv} arkivKey={state.arkivKey} pending={stStatus === "active"} />}
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -255,7 +256,7 @@ function CodeView({ code, sweeper, done }: { code?: string | null; sweeper?: str
   );
 }
 
-function DrainView({ tx, block, explorer, recv, pending }: { tx?: string | null; block?: number | null; explorer: string | null; recv: string | null; pending?: boolean }) {
+function DrainView({ tx, block, explorer, recv, arkivKey, pending }: { tx?: string | null; block?: number | null; explorer: string | null; recv: string | null; arkivKey?: string | null; pending?: boolean }) {
   return (
     <div className="flex flex-col gap-3">
       {tx ? (
@@ -271,7 +272,8 @@ function DrainView({ tx, block, explorer, recv, pending }: { tx?: string | null;
       {recv && (
         <div className="rounded-data border border-line overflow-hidden">
           <Row label="Victim balance after" value="0.00 tUSD" />
-          <Row label="Transferred to attacker" value={`+${recv} tUSD`} danger last />
+          <Row label="Transferred to attacker" value={`+${recv} tUSD`} danger last={!arkivKey} />
+          {arkivKey && <Row label="Recorded on Arkiv" value={`${arkivKey.slice(0, 10)}…`} last />}
         </div>
       )}
     </div>

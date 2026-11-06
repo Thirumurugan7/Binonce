@@ -7,6 +7,8 @@ import { AssetsTable, type Asset } from "./AssetsTable";
 import { Toasts, type ToastItem } from "./Toasts";
 import { AttackModal, type TraceState } from "./AttackModal";
 import { DemoBar } from "./DemoBar";
+import { MintModal } from "./MintModal";
+import { ActivityPanel } from "./ActivityPanel";
 import type { AttackEvent } from "@/lib/types";
 import { num, money } from "@/lib/format";
 
@@ -33,6 +35,7 @@ const emptyTrace: TraceState = {
   sweepBlock: null,
   victimCode: null,
   sweeperAddr: null,
+  arkivKey: null,
 };
 
 // Block explorer base for the active chain (tx links in the walkthrough).
@@ -49,11 +52,13 @@ export function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [trace, setTrace] = useState<TraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const [live, setLive] = useState(false);
   const [dbState, setDbState] = useState("Ready");
   const [disabled, setDisabled] = useState(true);
   const [chain, setChain] = useState("Local anvil");
+  const [arkiv, setArkiv] = useState(false);
+  const [mintOpen, setMintOpen] = useState(false);
+  const [activityVersion, setActivityVersion] = useState(0);
 
   const esRef = useRef<EventSource | null>(null);
   const nonceStart = useRef(0);
@@ -75,7 +80,7 @@ export function Dashboard() {
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
-      .then((c) => { setDisabled(!c.configured); setChain(c.chain ?? "Local anvil"); })
+      .then((c) => { setDisabled(!c.configured); setChain(c.chain ?? "Local anvil"); setArkiv(!!c.arkiv); })
       .catch(() => setDisabled(true));
     fetchBalance();
     return () => esRef.current?.close();
@@ -208,10 +213,15 @@ export function Dashboard() {
         addLine(t, `Drained ${e.drained} tUSD to attacker`, "hot");
         break;
       }
+      case "arkiv":
+        setTrace((tr) => ({ ...tr, arkivKey: e.arkivKey ?? null }));
+        addLine(t, `${e.msg}${e.arkivKey ? ` · ${e.arkivKey.slice(0, 10)}…` : ""}`, "ok");
+        break;
       case "done":
         addLine(t, e.msg ?? "", "ok");
         finish();
         fetchBalance();
+        setActivityVersion((v) => v + 1);
         break;
       case "error":
       case "fatal":
@@ -244,18 +254,14 @@ export function Dashboard() {
     fetchBalance();
   }, [fetchBalance]);
 
-  const doReset = useCallback(async () => {
-    if (running || resetting) return;
-    setResetting(true);
-    try {
-      const r = await fetch("/api/reset", { method: "POST" }).then((x) => x.json());
-      if (!r.ok) console.error("reset failed:", r.error);
-    } catch (e) {
-      console.error("reset failed:", e);
-    }
-    setResetting(false);
-    reset(); // clears the trace/alert/toasts and re-reads the fresh victim's balance
-  }, [running, resetting, reset]);
+  // A mint re-funds the SAME victim (no fresh deploy), so attack + mint history
+  // keeps accumulating on Arkiv instead of being wiped.
+  const onMinted = useCallback((balance: number) => {
+    applyBalance(balance, 0);
+    setHitSym(null);
+    setDraining(false);
+    setActivityVersion((v) => v + 1);
+  }, [applyBalance]);
 
   const run = useCallback(() => {
     if (running) return;
@@ -275,13 +281,15 @@ export function Dashboard() {
       <Nav />
       <div className="max-w-shell mx-auto px-5 sm:px-6 py-8 pb-28">
         <div className="bg-surface border border-line rounded-card shadow-card p-5 sm:p-6">
-          <BalanceCard usdt={usdt} total={total} hidden={hidden} draining={draining} onToggleEye={() => setHidden((h) => !h)} pnl={pnl} alert={alert} />
+          <BalanceCard usdt={usdt} total={total} hidden={hidden} draining={draining} onToggleEye={() => setHidden((h) => !h)} pnl={pnl} alert={alert} onDeposit={() => setMintOpen(true)} />
         </div>
         <AssetsTable assets={assets} hidden={hidden} hitSym={hitSym} />
+        <ActivityPanel version={activityVersion} txExplorer={explorerFor(chain)} />
       </div>
 
       <Toasts items={toasts} />
       <AttackModal open={drawerOpen} onClose={() => setDrawerOpen(false)} state={trace} explorer={explorerFor(chain)} network={chain} running={running} />
+      <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorerFor(chain)} arkiv={arkiv} />
       <DemoBar
         state={dbState}
         live={live}
@@ -290,8 +298,7 @@ export function Dashboard() {
         chain={chain}
         onRun={run}
         onTrace={openDrawer}
-        onReset={doReset}
-        resetting={resetting}
+        onMint={() => setMintOpen(true)}
       />
     </>
   );
