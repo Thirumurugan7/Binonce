@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Coins, RotateCcw } from "lucide-react";
+import { Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
 import { Terminal } from "./Terminal";
-import { type TraceState } from "./AttackTrace";
-import { AttackStage, RunSummary, phaseOf, type Phase } from "./AttackStage";
+import { ATTACK_STEPS, AttackEvidence, type TraceState } from "./AttackTrace";
+import { RunSummary, phaseOf } from "./RunSummary";
+import { StepsPanel } from "./StepsPanel";
+import { PortfolioSidebar, BalanceCard, AssetsTable, TxHistory, type HistoryRow, type PortfolioAlert } from "./portfolio/Portfolio";
 import { Toaster, toast } from "@/components/toast";
 import { ActivityPanel } from "./ActivityPanel";
 import { MintModal } from "./MintModal";
@@ -31,7 +33,11 @@ export function AttackPage() {
   const [attacker, setAttacker] = useState<string | null>(null);
   const [stolen, setStolen] = useState(0);
   const [delegated, setDelegated] = useState(false);
-  const [previewPhase, setPreviewPhase] = useState<Phase>(0);
+  const [eth, setEth] = useState<number | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [points, setPoints] = useState<number[]>([]);
+  const [baseline, setBaseline] = useState<number | null>(null);
   const [trace, setTrace] = useState<TraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
@@ -48,14 +54,24 @@ export function AttackPage() {
   const t0 = useRef(0);
   const tusdRef = useRef(0);
   tusdRef.current = tusd;
+  const attackerRef = useRef<string | null>(null);
+  attackerRef.current = attacker;
+
+  const addPoint = useCallback((v: number) => setPoints((p) => (p[p.length - 1] === v ? p : [...p, v].slice(-40))), []);
+  const upsertRow = useCallback((row: HistoryRow) => {
+    setHistory((h) => (h.some((r) => r.id === row.id) ? h.map((r) => (r.id === row.id ? { ...r, ...row, t: r.t } : r)) : [row, ...h]));
+  }, []);
+  const patchRow = useCallback((id: string, patch: Partial<HistoryRow>) => setHistory((h) => h.map((r) => (r.id === id ? { ...r, ...patch } : r))), []);
 
   // The wallet's real on-chain state: balance and whether its code is a delegation.
   const fetchBalance = useCallback(() => {
     fetch("/api/balance").then((r) => r.json()).then((c) => {
       if (!c.configured) return;
-      setTusd(c.usdt ?? 0); setVictim(c.victim ?? null); setDelegated(!!c.delegated); setLoaded(true);
+      const v = c.usdt ?? 0;
+      setTusd(v); setEth(c.eth ?? null); setVictim(c.victim ?? null); setDelegated(!!c.delegated); setLoaded(true);
+      setBaseline((b) => (b == null ? v : b)); addPoint(v);
     }).catch(() => {});
-  }, []);
+  }, [addPoint]);
 
   useEffect(() => {
     fetch("/api/config").then((r) => r.json())
@@ -89,10 +105,10 @@ export function AttackPage() {
       setTusd(from + (to - from) * e);
       setStolen(gain * e);
       if (p < 1) rafRef.current = requestAnimationFrame(step);
-      else { setTusd(to); setStolen(gain); done?.(); }
+      else { setTusd(to); setStolen(gain); addPoint(to); done?.(); }
     };
     rafRef.current = requestAnimationFrame(step);
-  }, []);
+  }, [addPoint]);
 
   const finish = useCallback(() => {
     setRunning(false);
@@ -143,11 +159,13 @@ export function AttackPage() {
       case "delegate-sent":
         setTrace((tr) => ({ ...tr, delegateTx: e.txHash ?? null }));
         addLine(t, "Delegation tx sent", undefined, e.txHash);
+        upsertRow({ id: `code-${t0.current}`, kind: "code", title: "Account code change (EIP-7702)", detail: "Sent by another address, not by this wallet", status: "pending", t, hash: e.txHash ?? null });
         toast.loading({ title: "Waiting for the delegation to confirm", body: "Transaction sent. The relayer paid the gas.", link: txLink(e.txHash) }, "delegate");
         break;
       case "delegate-mined":
         setStep("delegate", "done");
         setTrace((tr) => ({ ...tr, delegateBlock: e.block ?? null }));
+        patchRow(`code-${t0.current}`, { status: "done", detail: `Wallet delegated to a contract · block ${e.block ?? ""}` });
         addLine(t, `Delegation confirmed in block ${e.block ?? ""}`, "ok");
         setTrace((tr) => { toast.success({ title: "Delegation confirmed", body: `Included in block ${e.block ?? ""}.`, link: txLink(tr.delegateTx) }, "delegate"); return tr; });
         break;
@@ -173,6 +191,7 @@ export function AttackPage() {
       case "sweep-sent":
         setTrace((tr) => ({ ...tr, sweepTx: e.txHash ?? null }));
         addLine(t, "Sweep tx sent", undefined, e.txHash);
+        upsertRow({ id: `out-${t0.current}`, kind: "out", title: "Withdrawal · tUSD", detail: `To ${shortAddr(attackerRef.current ?? undefined)} · not approved by the owner`, amount: `-${money(tusdRef.current)}`, status: "pending", t, hash: e.txHash ?? null });
         toast.loading({ title: "Waiting for the sweep to confirm", body: "One call moves the whole balance.", link: txLink(e.txHash) }, "sweep");
         break;
       case "sweep-mined":
@@ -184,6 +203,7 @@ export function AttackPage() {
         const drained = num(e.drained ?? "") || BASE;
         setTrace((tr) => ({ ...tr, attackerRecv: e.attackerTUSD ?? null }));
                 tween(num(e.victimTUSD ?? "0"), drained, 2200);
+        patchRow(`out-${t0.current}`, { status: "done", amount: `-${money(drained)}` });
         addLine(t, `Drained ${e.drained} tUSD to the attacker`, "hot");
         setTrace((tr) => { toast.warning({ title: `${money(drained)} tUSD drained`, body: "The whole balance went to the attacker in one call.", link: txLink(tr.sweepTx) }, "sweep"); return tr; });
         break;
@@ -215,11 +235,11 @@ export function AttackPage() {
       default:
         if (e.msg) addLine(t, e.msg);
     }
-  }, [addLine, activate, setStep, tween, fetchBalance, finish, txLink]);
+  }, [addLine, activate, setStep, tween, fetchBalance, finish, txLink, upsertRow, patchRow]);
 
   const clear = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    setTrace(emptyTrace); setStolen(0); setElapsed(null); setPreviewPhase(0);
+    setTrace(emptyTrace); setStolen(0); setElapsed(null); setHistory([]);
   }, []);
 
   const run = useCallback(() => {
@@ -229,8 +249,7 @@ export function AttackPage() {
     t0.current = Date.now();
     doneRef.current = false;
     toast.clear();
-    toast.info({ title: `Attack started on ${chain}`, body: "Follow the diagram. Each step is a real transaction." });
-    document.getElementById("stage")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    toast.info({ title: `Attack started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
     const es = new EventSource("/api/run");
     esRef.current = es;
     es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch { /* ignore malformed line */ } };
@@ -241,67 +260,103 @@ export function AttackPage() {
   }, [running, clear, handle, finish, chain]);
 
   const onMinted = useCallback((balance: number) => {
-    setTusd(balance);
+    const added = balance - tusdRef.current;
+    if (added > 0) upsertRow({ id: `in-${Date.now()}`, kind: "in", title: "Deposit · tUSD", detail: "Test tokens minted to this wallet", amount: `+${money(added)}`, status: "done", t: Date.now() });
+    setTusd(balance); addPoint(balance);
     setActivityVersion((v) => v + 1);
     fetchBalance();
-  }, [fetchBalance]);
+  }, [fetchBalance, upsertRow, addPoint]);
 
   const explorer = explorerFor(chain);
   const ready = configured === true;
   const finished = trace.steps.sweep === "done";
   const started = trace.lines.length > 0;
-  const livePhase = phaseOf(trace.steps);
-  const preview = !started && previewPhase > 0;
-  const stagePhase: Phase = preview ? previewPhase : livePhase;
-  const status = configured === false ? "Chain not set up" : running ? "Running…" : finished ? "Finished" : "Ready";
+  const phase = phaseOf(trace.steps);
+  const status = configured === false ? "Chain not set up" : running ? "Attack running…" : finished ? "Attack finished" : "Ready";
+  const taken = phase >= 3 || (phase === 0 && delegated);
+  const balance = loaded || started ? tusd : null;
+  const pnl = baseline != null && balance != null ? { delta: balance - baseline, pct: baseline ? ((balance - baseline) / baseline) * 100 : 0 } : null;
+  const assets = [
+    { sym: "tUSD", name: "Test USD", amt: balance, price: 1, priceNote: "test token" },
+    { sym: "ETH", name: "Ethereum", amt: eth, price: null as number | null, priceNote: "gas only" },
+  ];
+
+  // What the exchange's own screen can tell at each moment. Signing is invisible from here — that's the point.
+  const alert: PortfolioAlert | null =
+    phase === 1 ? { tone: "info", title: "Nothing looks wrong yet", body: "The attacker is signing with the leaked key, offline. No exchange screen can see this step." }
+    : phase === 2 ? { tone: "warn", title: "A transaction for this wallet, sent by someone else", body: "It carries an authorization signed with this wallet’s own key." }
+    : phase === 3 ? { tone: "danger", title: "This wallet’s code changed", body: "It now runs an outside contract (0xef0100…). The owner was never asked to approve it." }
+    : phase === 4 ? { tone: "danger", title: "Withdrawal in progress", body: "The whole tUSD balance is leaving, and the owner never signed for it." }
+    : phase === 5 ? { tone: "danger", title: `${money(stolen)} tUSD left without approval`, body: "Two transactions, both sent by the attacker. The owner saw no prompt." }
+    : delegated ? { tone: "warn", title: "This wallet is still delegated from an earlier run", body: "Launch runs the whole thing again from the start." }
+    : null;
+  const hit = phase >= 4 ? { sym: "tUSD", tone: "drain" as const } : null;
 
   return (
     <>
       <AppNav chain={chain} />
-      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pb-28 lg:pb-20">
-        <header className="flex flex-wrap items-end gap-x-10 gap-y-6 pt-10 pb-8 border-b border-bn-line mb-8">
-          <div className="flex-1 min-w-[18rem]">
-            <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">Attack replay</h1>
-            <p className="text-[16px] leading-relaxed text-bn-ink-2 mt-4 mb-0 max-w-[42rem]">
-              Replays an EIP-7702 leaked-key drain against a test wallet on {chain}, modelled on the largest case so far:
-              Binance, October 2026. Press
-              {" "}<b className="font-medium text-bn-ink">Launch attack</b>: the diagram shows who does what, the
-              notifications explain each step as it happens, and the log underneath shows every real transaction.
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pb-28 lg:pb-20">
+        {/* Demo controls, kept visually apart from the exchange UI below. */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5 border-b border-bn-line mb-6">
+          <div className="min-w-0 flex-1 basis-[26rem]">
+            <h1 className="m-0 text-[15px] font-medium text-bn-ink">
+              Attack replay <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
+            </h1>
+            <p className="m-0 mt-1 text-[13.5px] text-bn-ink-2 max-w-[46rem]">
+              The left is a stand-in exchange portfolio. Press <b className="font-medium text-bn-ink">Launch attack</b> and watch it
+              react while the panel on the right shows what the attacker is doing. Everything runs on {chain} with test tokens.
             </p>
           </div>
-          <div className="flex flex-col items-start sm:items-end gap-2.5">
+          <div className="flex flex-col items-start sm:items-end gap-2">
             <div className="flex flex-wrap gap-2.5">
-              <Button variant="secondary" size="lg" onClick={() => setMintOpen(true)} disabled={!ready || running} icon={<Coins className="h-4 w-4" />}>Top up</Button>
-              {started && !running && <Button variant="secondary" size="lg" onClick={clear} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
+              {started && !running && <Button variant="secondary" onClick={clear} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
               <Button variant="danger" size="lg" onClick={run} disabled={!ready || running} icon={<Play className="h-4 w-4 fill-current" />}>
                 {running ? "Running…" : finished ? "Run again" : "Launch attack"}
               </Button>
             </div>
             <span className="text-[12.5px] text-bn-muted">{status} · test tokens only</span>
           </div>
-        </header>
+        </div>
 
         {configured === false && <SetupNotice />}
 
-        <div id="stage" className="scroll-mt-20">
-          <AttackStage
-            phase={stagePhase} preview={preview} trace={preview ? emptyTrace : trace}
-            victimBal={preview ? (previewPhase >= 4 ? 0 : BASE) : loaded || started ? tusd : null}
-            attackerBal={preview ? (previewPhase >= 4 ? BASE : 0) : stolen}
-            victim={victim} attacker={attacker} explorer={explorer}
-            leftover={!preview && livePhase === 0 && delegated}
-            onPick={(p) => { if (!started) setPreviewPhase((cur) => (cur === p ? 0 : p)); }}
-          />
+        <div className="grid grid-cols-1 xl:grid-cols-[200px_minmax(0,1fr)_380px] gap-6 items-start">
+          <PortfolioSidebar account="Exchange wallet · demo" />
+
+          {/* The portfolio: what the owner would see. */}
+          <div className="flex flex-col gap-5 min-w-0">
+            <BalanceCard
+              label="Exchange hot wallet" address={victim} sym="tUSD"
+              balance={balance} usd={balance} hidden={hidden} onToggleHidden={() => setHidden((v) => !v)}
+              pnl={pnl} points={points} alert={alert} flash={phase >= 4 ? "drain" : undefined}
+              security={taken
+                ? { tone: "danger", text: "Account compromised", sub: "This wallet runs an outside contract." }
+                : { tone: "ok", text: "Normal wallet", sub: "Only this wallet’s key can move its money." }}
+              onDeposit={() => setMintOpen(true)} depositHint={!ready || running ? "Available once the chain is ready and no run is active" : "Mint test tUSD to this wallet"} busy={running}
+            />
+            <AssetsTable assets={assets} hidden={hidden} hit={hit} />
+            <TxHistory rows={history} explorer={explorer} empty="No transactions this session. Deposit test tokens or launch the attack." />
+          </div>
+
+          {/* The attacker's side: invisible to the portfolio, shown here. */}
+          <aside className="flex flex-col gap-5 xl:sticky xl:top-20">
+            <StepsPanel
+              title="What the attacker is doing" sub="EIP-7702, step by step" tone="ember" live={running}
+              steps={ATTACK_STEPS} statuses={trace.steps}
+              evidence={(k, st) => <AttackEvidence k={k} st={st} state={trace} explorer={explorer} attacker={attacker} moved={stolen} />}
+            />
+            <RunSummary phase={phase} signed={trace.nonces.signedUpto} txs={(trace.delegateTx ? 1 : 0) + (trace.sweepTx ? 1 : 0)} moved={stolen} elapsed={elapsed} />
+          </aside>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-stretch">
+        <section aria-labelledby="log" className="mt-8">
+          <h2 id="log" className="sr-only">Live log</h2>
           <Terminal
             lines={trace.lines} running={running} explorer={explorer}
             command={`binonce attack --chain ${chain.toLowerCase().replace(/\s+/g, "-")}`}
             idle={ready ? "Waiting. Press Launch attack to start." : "Waiting for the chain. See the setup note above."}
           />
-          <RunSummary phase={livePhase} signed={trace.nonces.signedUpto} txs={(trace.delegateTx ? 1 : 0) + (trace.sweepTx ? 1 : 0)} moved={stolen} elapsed={elapsed} />
-        </div>
+        </section>
 
         <section aria-labelledby="record" className="mt-14">
           <h2 id="record" className="font-serif font-normal text-[28px] text-bn-ink m-0">Saved to Arkiv</h2>
