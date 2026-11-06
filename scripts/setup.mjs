@@ -6,7 +6,7 @@
 // Local default: relayer = anvil account[0] (funded), attacker = a fresh address.
 import "dotenv/config";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { createPublicClient, createWalletClient, http, defineChain } from "viem";
+import { createPublicClient, createWalletClient, http, defineChain, parseUnits } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import solc from "solc";
@@ -25,6 +25,9 @@ const relayerPk = process.env.RELAYER_PK || (CHAIN_ID === 31337 ? ANVIL_PK : nul
 if (!relayerPk) { console.error("Set RELAYER_PK (a funded key) for a non-local chain."); process.exit(1); }
 const relayer = privateKeyToAccount(relayerPk);
 const attacker = process.env.ATTACKER_ADDR || privateKeyToAccount(generatePrivateKey()).address;
+// Fixed victim (persistent address) so the dashboard can read a real, lasting balance.
+const victimPk = process.env.VICTIM_PK || generatePrivateKey();
+const victim = privateKeyToAccount(victimPk).address;
 
 const pub = createPublicClient({ chain, transport: http(CHAIN_RPC) });
 const wallet = createWalletClient({ account: relayer, chain, transport: http(CHAIN_RPC) });
@@ -57,11 +60,18 @@ async function main() {
   const SWEEPER = (await pub.waitForTransactionReceipt({ hash: h })).contractAddress;
   console.log("Sweeper", SWEEPER, "(attacker", attacker + ")");
 
+  // Give the fixed victim an initial real balance so the dashboard shows it on first load.
+  const mintHash = await wallet.writeContract({ address: TUSD, abi: tusd.abi, functionName: "mint", args: [victim, parseUnits("2500000", 6)] });
+  await pub.waitForTransactionReceipt({ hash: mintHash });
+  console.log("minted 2,500,000 tUSD to victim", victim);
+
   const env = [
     `CHAIN_RPC=${CHAIN_RPC}`,
     `CHAIN_ID=${CHAIN_ID}`,
     `RELAYER_PK=${relayerPk}`,
     `ATTACKER_ADDR=${attacker}`,
+    `VICTIM_PK=${victimPk}`,
+    `VICTIM_ADDR=${victim}`,
     `TUSD_ADDR=${TUSD}`,
     `SWEEPER_ADDR=${SWEEPER}`,
     "",

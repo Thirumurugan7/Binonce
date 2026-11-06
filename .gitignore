@@ -2,3 +2,5 @@ node_modules/
 .next/
 .env
 *.log
+.runtime.json
+demo-media/

@@ -1,6 +1,7 @@
 import { parseUnits, formatUnits, encodeFunctionData } from "viem";
-import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
+import { privateKeyToAccount } from "viem/accounts";
 import { publicClient, walletClient, getChain } from "./chain";
+import { getConfig } from "./runtime";
 import { ERC20_ABI, SWEEPER_ABI } from "./abi";
 import type { Emit } from "./types";
 
@@ -32,20 +33,26 @@ export async function runAttack(emit: Emit) {
   const E = (e: Parameters<Emit>[0]) => emit({ t: Date.now(), ...e });
 
   const chain = getChain();
+  const cfg = getConfig(); // current run's addresses (swapped by /api/reset)
   const relayer = privateKeyToAccount(env("RELAYER_PK") as `0x${string}`);
-  const attacker = env("ATTACKER_ADDR") as `0x${string}`;
-  const sweeper = env("SWEEPER_ADDR") as `0x${string}`;
-  const tusd = env("TUSD_ADDR") as `0x${string}`;
-  const victim = privateKeyToAccount(generatePrivateKey()); // fresh each run
+  const attacker = cfg.attacker;
+  const sweeper = cfg.sweeper;
+  const tusd = cfg.tusd;
+  const victim = privateKeyToAccount(cfg.victimPk); // fixed victim (persistent on-chain balance)
 
   const pub = publicClient();
   const wallet = walletClient(relayer);
 
   E({ step: "setup", msg: "Actors loaded", victim: victim.address, relayer: relayer.address, attacker, sweeper, tusd });
 
-  // Fund the fresh victim (open-mint test token). Relayer pays gas; victim needs no ETH.
-  const mintHash = await wallet.writeContract({ address: tusd, abi: ERC20_ABI, functionName: "mint", args: [victim.address, parseUnits(START_BALANCE, DEC)] });
-  await pub.waitForTransactionReceipt({ hash: mintHash });
+  // Top the fixed victim up to START_BALANCE: mint only the shortfall, so the real
+  // balance is exactly START_BALANCE before each run (no double-counting across reruns).
+  const target = parseUnits(START_BALANCE, DEC);
+  const cur0 = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
+  if (cur0 < target) {
+    const mintHash = await wallet.writeContract({ address: tusd, abi: ERC20_ABI, functionName: "mint", args: [victim.address, target - cur0] });
+    await pub.waitForTransactionReceipt({ hash: mintHash });
+  }
 
   const before = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
   E({ step: "before", msg: "Victim balance before attack", victimTUSD: formatUnits(before, DEC), attackerTUSD: "0" });

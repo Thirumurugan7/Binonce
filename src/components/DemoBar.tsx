@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Loader2, PanelRightOpen, Zap } from "lucide-react";
+import { Play, Loader2, PanelRightOpen, Zap, RotateCcw } from "lucide-react";
 
 export function DemoBar({
-  state, live, running, disabled, chain, onRun, onTrace,
+  state, live, running, disabled, chain, onRun, onTrace, onReset, resetting,
 }: {
   state: string; live: boolean; running: boolean; disabled: boolean; chain: string;
-  onRun: () => void; onTrace: () => void;
+  onRun: () => void; onTrace: () => void; onReset: () => void; resetting: boolean;
 }) {
   return (
     <div className="fixed left-0 right-0 bottom-0 z-50 bg-night/95 backdrop-blur text-[#EAECEF] flex items-center gap-4 px-5 py-3 border-t border-night-line">
@@ -36,6 +36,16 @@ export function DemoBar({
         className="inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] bg-white/[0.07] text-[#EAECEF] hover:bg-white/[0.12] transition-colors"
       >
         <PanelRightOpen className="h-4 w-4" /> Trace
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        onClick={onReset}
+        disabled={running || resetting || disabled}
+        title="Deploy a fresh token, sweeper, victim and attacker, and re-mint 2.5M"
+        className="inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] bg-white/[0.07] text-[#EAECEF] hover:bg-white/[0.12] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+        {resetting ? "Resetting…" : "Reset"}
       </motion.button>
     </div>
   );
