@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowRight, ShieldAlert, CheckCircle2 } from "lucide-react";
-import { Button, Eyebrow, Reveal } from "@/components/brand";
+import { Button, Eyebrow, Reveal, Hl } from "@/components/brand";
 import { money } from "@/lib/format";
 
 /**
@@ -107,7 +107,7 @@ export function TwoViews() {
             </Reveal>
             <Reveal delay={0.1}>
               <p className="text-body-l text-bn-ink-2 mt-6 mb-0 max-w-prose">
-                The replay page puts the two side by side. The wallet stays calm until the money is gone; the trace shows
+                The replay page puts the two side by side. <Hl>The wallet stays calm until the money is gone</Hl>; the trace shows
                 every signature, transaction and block as it happens.
               </p>
             </Reveal>

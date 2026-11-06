@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Eyebrow, Reveal } from "@/components/brand";
+import { Eyebrow, Reveal, Hl } from "@/components/brand";
 import { NonceWindow, CodeDecoder } from "./Explainers";
 
 const STEPS = [
@@ -61,8 +61,8 @@ export function Anatomy() {
         </Reveal>
         <Reveal delay={0.1}>
           <p className="text-body-l text-bn-ink-2 mt-6 mb-0 max-w-prose">
-            EIP-7702 lets an ordinary account temporarily run a contract’s code. With the account’s key, an attacker can point it at a
-            contract that sends everything away. Four steps, and the replay runs every one of them on-chain.
+            EIP-7702 lets an ordinary account temporarily run a contract’s code. With the account’s key, <Hl>an attacker can point it at a
+            contract that sends everything away</Hl>. Four steps, and the replay runs every one of them on-chain.
           </p>
         </Reveal>
       </div>

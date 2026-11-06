@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowDown } from "lucide-react";
-import { Button, Eyebrow, Reveal } from "@/components/brand";
-import { HeroReplay } from "./HeroReplay";
+import { Button, Eyebrow, Reveal, Hl } from "@/components/brand";
+import { MetricsBoard } from "./MetricsBoard";
 
 export function Hero() {
   return (
@@ -15,7 +15,7 @@ export function Hero() {
           </Reveal>
           <Reveal delay={0.12}>
             <p className="text-body-l text-bn-ink-2 mt-7 mb-0 max-w-[34rem]">
-              On 29 October 2026, one stolen key signed 50 authorizations and a Binance hot wallet became a contract that emptied itself.
+              On 29 October 2026, one stolen key signed 50 authorizations and <Hl>a Binance hot wallet became a contract that emptied itself</Hl>.
               Binonce replays that EIP-7702 drain on a real chain, so you can watch each step and see what stops it.
             </p>
           </Reveal>
@@ -31,7 +31,7 @@ export function Hero() {
         </div>
 
         <Reveal delay={0.1} y={28}>
-          <HeroReplay />
+          <MetricsBoard />
         </Reveal>
       </div>
     </section>

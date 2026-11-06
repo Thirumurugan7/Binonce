@@ -1,5 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
-import { Eyebrow, Reveal } from "@/components/brand";
+import { Eyebrow, Reveal, Hl } from "@/components/brand";
 import { Classifier } from "./Classifier";
 import { CopyButton } from "./CopyButton";
 import { ARKIV_EXPLORER, ARKIV_WRITER, REPO } from "./links";
@@ -27,7 +27,7 @@ export function Blacklist() {
               <p className="text-body-l text-bn-fog-2 mt-6 mb-0 max-w-prose">
                 Every delegate contract Binonce sees goes to Arkiv, a database on its own chain. Entries are signed by our writer
                 wallet and stamped with a block, anyone can read them without asking us, and a flag can only change through a
-                public transaction. Labels come from fixed rules on the bytecode, not guesses.
+                public transaction. <Hl onNight>Labels come from fixed rules on the bytecode, not guesses.</Hl>
               </p>
             </Reveal>
 

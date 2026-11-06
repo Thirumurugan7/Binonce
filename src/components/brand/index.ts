@@ -6,3 +6,4 @@ export { Mark, Wordmark } from "./Mark";
 export { Designator } from "./Designator";
 export { ThemeToggle } from "./ThemeToggle";
 export { IntroLoader } from "./IntroLoader";
+export { Hl } from "./Highlight";

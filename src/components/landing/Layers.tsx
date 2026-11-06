@@ -1,5 +1,5 @@
 import { ArrowUpRight, ArrowRight } from "lucide-react";
-import { Eyebrow, Reveal, Tag, type TagTone } from "@/components/brand";
+import { Eyebrow, Reveal, Tag, Hl, type TagTone } from "@/components/brand";
 import { CHAINWALL } from "./links";
 import { LockCompare } from "./LockCompare";
 
@@ -61,8 +61,8 @@ export function Layers() {
         </div>
         <Reveal delay={0.1}>
           <p className="text-body-l text-bn-ink-2 m-0 max-w-prose">
-            Spotting a bad signature doesn’t work, because a forged one looks exactly like a real one. The fix is to stop treating a
-            signature as permission. Binonce frames that as three layers around the same wallet.
+            Spotting a bad signature doesn’t work, because a forged one looks exactly like a real one. The fix is to <Hl>stop treating a
+            signature as permission</Hl>. Binonce frames that as three layers around the same wallet.
           </p>
         </Reveal>
       </div>
