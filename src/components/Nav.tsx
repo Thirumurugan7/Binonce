@@ -1,5 +1,6 @@
 import { Search, Bell, UserRound, Download } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { ModeSwitch } from "./ModeSwitch";
 
 const LINKS = ["Buy Crypto", "Markets", "Trade", "Futures", "Earn", "Square", "More"];
 
@@ -32,6 +33,7 @@ export function Nav() {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-1 text-ink-3">
+        <div className="mr-2"><ModeSwitch /></div>
         <NavIcon><Search className="h-[18px] w-[18px]" /></NavIcon>
         <NavIcon><Download className="h-[18px] w-[18px]" /></NavIcon>
         <NavIcon><Bell className="h-[18px] w-[18px]" /></NavIcon>

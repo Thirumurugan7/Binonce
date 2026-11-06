@@ -69,7 +69,7 @@ export function AssetsTable({ assets, hidden, hitSym }: { assets: Asset[]; hidde
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4 text-right font-medium tnum">{hidden ? "••••" : amount(a.amt, a.sym === "USDT" ? 2 : 4)}</td>
+                <td className="px-5 py-4 text-right font-medium tnum">{hidden ? "••••" : amount(a.amt, a.sym === "USDT" || a.sym === "USDC" ? 2 : 4)}</td>
                 <td className="px-5 py-4 text-right tnum">${money(a.price)}</td>
                 <td className={`px-5 py-4 text-right tnum hidden sm:table-cell ${a.chg >= 0 ? "text-up" : "text-down"}`}>
                   {a.chg >= 0 ? "+" : ""}{a.chg.toFixed(2)}%
