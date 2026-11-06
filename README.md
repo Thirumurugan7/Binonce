@@ -124,7 +124,7 @@ Code is MIT; the registry **data** is public-domain (CC0) and derived from publi
 
 ## AI-usage disclosure
 
-Built with AI assistance (Claude Code) for scaffolding, the UI, the Arkiv integration and the
+Built with AI assistance for scaffolding, the UI, the Arkiv integration and the
 importer. All on-chain logic, the Arkiv schema, and the labelling heuristics were reviewed by the
 team; no labels are asserted without the bytecode/heuristic basis recorded in each entity.
 
