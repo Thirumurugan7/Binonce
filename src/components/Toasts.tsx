@@ -10,12 +10,9 @@ export interface ToastItem {
   sub: string;
 }
 
-export function Toasts({ items, shifted }: { items: ToastItem[]; shifted: boolean }) {
+export function Toasts({ items }: { items: ToastItem[] }) {
   return (
-    <div
-      className="fixed top-[76px] z-[70] flex flex-col gap-2.5 w-[340px] max-w-[90vw] transition-[right] duration-300 ease-out"
-      style={{ right: shifted ? 460 : 20 }}
-    >
+    <div className="fixed top-[76px] right-5 z-[120] flex flex-col gap-2.5 w-[340px] max-w-[90vw] pointer-events-none">
       <AnimatePresence initial={false}>
         {items.map((t) => (
           <motion.div
@@ -27,7 +24,7 @@ export function Toasts({ items, shifted }: { items: ToastItem[]; shifted: boolea
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
             className="bg-surface border border-line rounded-[10px] px-4 py-3.5 shadow-toast flex gap-3 items-start"
           >
-            <div className={`h-6 w-6 flex-none rounded-full grid place-items-center ${t.kind === "ok" ? "bg-[#E6F9F1] text-up" : "bg-[#FEF0F0] text-down"}`}>
+            <div className={`h-6 w-6 flex-none rounded-full grid place-items-center ${t.kind === "ok" ? "bg-up/15 text-up" : "bg-down/15 text-down"}`}>
               {t.kind === "ok" ? <CheckCircle2 className="h-[15px] w-[15px]" /> : <ShieldAlert className="h-[15px] w-[15px]" />}
             </div>
             <div>

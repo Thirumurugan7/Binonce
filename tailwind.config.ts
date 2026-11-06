@@ -7,19 +7,29 @@ import type { Config } from "tailwindcss";
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        // brand
+        // brand (theme-independent)
         yellow: { DEFAULT: "#F0B90B", hi: "#FCD535", press: "#D0980B" },
-        // light surfaces
-        ink: { DEFAULT: "#1E2026", 2: "#32313A", 3: "#707A8A", 4: "#848E9C" },
-        surface: { DEFAULT: "#FFFFFF", soft: "#FAFAFA", fill: "#F5F5F5" },
-        line: "#E6E8EA",
-        // semantic (price data only)
+        // semantic (price data / attack state only) — theme-independent
         up: "#0ECB81",
         down: "#F6465D",
-        // dark surfaces (attack trace / demo chrome)
+        // theme-aware surfaces — driven by CSS vars (see globals.css), flip on `.dark`
+        ink: {
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          2: "rgb(var(--ink-2) / <alpha-value>)",
+          3: "rgb(var(--ink-3) / <alpha-value>)",
+          4: "rgb(var(--ink-4) / <alpha-value>)",
+        },
+        surface: {
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          soft: "rgb(var(--surface-soft) / <alpha-value>)",
+          fill: "rgb(var(--surface-fill) / <alpha-value>)",
+        },
+        line: "rgb(var(--line) / <alpha-value>)",
+        // dark surfaces kept for the /styleguide reference page
         night: { DEFAULT: "#0B0E11", 2: "#0F141B", 3: "#070A0F", line: "#1B222C" },
         dim: { DEFAULT: "#8B98A8", 2: "#5A6676" },
       },

@@ -31,8 +31,8 @@ export function AssetsTable({ assets, hidden, hitSym }: { assets: Asset[]; hidde
     <div className="bg-surface border border-line rounded-card mt-6 overflow-hidden">
       <div className="flex items-center gap-6 px-5 pt-4">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className="relative pb-3 text-sm font-semibold transition-colors"
-            style={{ color: tab === t ? "#1E2026" : "#848E9C" }}>
+          <button key={t} onClick={() => setTab(t)}
+            className={`relative pb-3 text-sm font-semibold transition-colors ${tab === t ? "text-ink" : "text-ink-4 hover:text-ink-3"}`}>
             {t}
             {tab === t && <motion.span layoutId="assets-tab" className="absolute left-0 right-0 -bottom-px h-0.5 bg-yellow rounded-full" />}
           </button>
@@ -58,7 +58,7 @@ export function AssetsTable({ assets, hidden, hitSym }: { assets: Asset[]; hidde
           </thead>
           <tbody>
             {rows.map((a) => (
-              <motion.tr key={a.sym} animate={{ backgroundColor: hitSym === a.sym ? "#FFF8E6" : "rgba(255,255,255,0)" }}
+              <motion.tr key={a.sym} animate={{ backgroundColor: hitSym === a.sym ? "rgba(240,185,11,0.14)" : "rgba(240,185,11,0)" }}
                 transition={{ duration: 0.4 }} className="border-t border-line text-sm">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
