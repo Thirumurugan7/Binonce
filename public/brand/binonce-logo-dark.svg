@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 44" role="img" aria-label="Binonce">
+  <title>Binonce</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&amp;display=swap');
+    .wm{font-family:'Instrument Serif',Georgia,serif;font-size:40px;letter-spacing:-0.3px;fill:#E8E4DA;}
+  </style>
+  <svg x="0" y="2" width="40" height="40" viewBox="-2 -2 26 26">
+    <g transform="rotate(45 11 11)">
+    <circle cx="4"  cy="4"  r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="11" cy="4"  r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="18" cy="4"  r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="4"  cy="11" r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="18" cy="11" r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="4"  cy="18" r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="11" cy="18" r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <circle cx="18" cy="18" r="1.7" fill="#C4A050" fill-opacity=".5"/>
+    <rect x="7.5" y="7.5" width="7" height="7" rx="1.4" fill="#F5C52C"/>
+    </g>
+  </svg>
+  <text class="wm" x="48" y="33">Binonce</text>
+</svg>
