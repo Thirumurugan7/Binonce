@@ -30,4 +30,9 @@ export function walletClient(account: Account) {
   return createWalletClient({ account, chain: getChain(), transport: http(rpcUrl()) });
 }
 
-export const chainLabel = () => (Number(process.env.CHAIN_ID || 31337) === 11155111 ? "Sepolia" : "Local anvil");
+export const chainLabel = () => {
+  const id = Number(process.env.CHAIN_ID || 31337);
+  if (id === 11155111) return "Sepolia";
+  if (id === 42161) return "Arbitrum One (local fork)";
+  return "Local anvil";
+};
