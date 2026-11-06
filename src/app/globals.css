@@ -29,6 +29,8 @@
   --bn-seal-glow: 94 201 156;   /* #5EC99C */
   --bn-amber: 138 87 11;        /* #8A570B warning — 5.3:1 */
   --bn-amber-glow: 233 180 76;  /* #E9B44C */
+  --bn-gold: 240 185 11;        /* #F0B90B exchange gold — the mark's gem */
+  --bn-gold-soft: 214 169 64;   /* #D6A940 muted gold — the spare nonces */
   --bn-info: 44 84 196;         /* #2C54C4 */
   --bn-shadow: 21 20 15;
   --bn-hl: 178 49 14;           /* highlight + selection: ember-ink, white text 6.3:1 */
@@ -52,6 +54,8 @@
   --bn-ember-ink: 255 125 92;   /* #FF7D5C ember text on soot — 6.9:1 */
   --bn-seal: 88 196 150;        /* #58C496 */
   --bn-amber: 228 172 70;       /* #E4AC46 */
+  --bn-gold: 245 197 44;        /* #F5C52C brighter gem on night */
+  --bn-gold-soft: 196 160 80;   /* #C4A050 spare nonces on night */
   --bn-info: 128 158 255;       /* #809EFF */
   --bn-shadow: 0 0 0;
   --bn-hl: 255 125 92;          /* black text 8.2:1 */
