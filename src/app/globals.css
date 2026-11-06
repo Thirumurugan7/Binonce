@@ -31,6 +31,8 @@
   --bn-amber-glow: 233 180 76;  /* #E9B44C */
   --bn-info: 44 84 196;         /* #2C54C4 */
   --bn-shadow: 21 20 15;
+  --bn-hl: 178 49 14;           /* highlight + selection: ember-ink, white text 6.3:1 */
+  --bn-on-hl: 255 255 255;
   --scroll-thumb: 203 196 182;
   color-scheme: light;
 }
@@ -52,6 +54,8 @@
   --bn-amber: 228 172 70;       /* #E4AC46 */
   --bn-info: 128 158 255;       /* #809EFF */
   --bn-shadow: 0 0 0;
+  --bn-hl: 255 125 92;          /* black text 8.2:1 */
+  --bn-on-hl: 0 0 0;
   --scroll-thumb: 64 62 57;
   color-scheme: dark;
 }
@@ -69,7 +73,7 @@ body {
   transition: background-color .25s ease, color .25s ease;
 }
 
-::selection { background: rgb(var(--bn-ember)); color: #fff; }
+::selection { background: rgb(var(--bn-hl)); color: rgb(var(--bn-on-hl)); }
 
 /* theme-aware scrollbars */
 .scroll-nice::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -136,3 +140,30 @@ html[data-intro="skip"] .bn-intro { display: none; }
 .bn-range--night::-moz-range-track { background: rgb(var(--bn-night-line)); }
 .bn-range--night::-webkit-slider-thumb { background: rgb(var(--bn-fog)); border-color: rgb(var(--bn-night-2)); box-shadow: none; }
 .bn-range--night::-moz-range-thumb { background: rgb(var(--bn-fog)); border-color: rgb(var(--bn-night-2)); }
+
+/* ── Toast progress ─────────────────────────────────────────── */
+.bn-countdown { width: 100%; transform-origin: left; animation: bn-countdown linear forwards; }
+@keyframes bn-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.bn-indeterminate { animation: bn-indet 1.2s ease-in-out infinite; }
+@keyframes bn-indet { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+/* ── Attack stage connectors ────────────────────────────────── */
+.bn-dashed { background-image: linear-gradient(to bottom, rgb(var(--bn-ink) / .5) 50%, transparent 50%); background-size: 2px 8px; }
+@media (min-width: 1024px) { .bn-dashed { background-image: linear-gradient(to right, rgb(var(--bn-ink) / .5) 50%, transparent 50%); background-size: 8px 2px; } }
+.bn-packet { animation: bn-packet-y 1.1s cubic-bezier(.45,0,.55,1) infinite; }
+@media (min-width: 1024px) { .bn-packet { animation-name: bn-packet-x; } }
+@keyframes bn-packet-y { from { top: -8px; } to { top: 100%; } }
+@keyframes bn-packet-x { from { left: -8px; } to { left: 100%; } }
+
+/* ── Highlight: a marker stroke that sweeps in when scrolled into view.
+   Same colours as text selection, so it reads as "the part worth selecting". */
+.bn-hl {
+  background-image: linear-gradient(rgb(var(--bn-hl)), rgb(var(--bn-hl)));
+  background-repeat: no-repeat; background-size: 0% 100%; background-position: 0 0;
+  padding: 0.04em 0.14em; margin: 0 -0.06em; border-radius: 3px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  transition: background-size .9s cubic-bezier(.16,1,.3,1), color .35s ease .25s;
+}
+.bn-hl[data-on="true"] { background-size: 100% 100%; color: rgb(var(--bn-on-hl)); }
+.bn-hl--night { background-image: linear-gradient(rgb(var(--bn-ember-glow)), rgb(var(--bn-ember-glow))); }
+.bn-hl--night[data-on="true"] { color: #000; }
