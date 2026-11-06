@@ -1,8 +1,9 @@
-import { parseUnits, formatUnits, encodeFunctionData } from "viem";
+import { parseUnits, formatUnits, encodeFunctionData, keccak256, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { publicClient, walletClient, getChain } from "./chain";
 import { getConfig } from "./runtime";
 import { ERC20_ABI, SWEEPER_ABI } from "./abi";
+import { arkivEnabled, recordDelegation, upsertDelegate } from "./arkiv";
 import type { Emit } from "./types";
 
 const NUM_AUTHS = 50;
@@ -93,5 +94,25 @@ export async function runAttack(emit: Emit) {
   const after = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
   const drained = before - after;
   E({ step: "after", msg: "Balances after attack", victimTUSD: formatUnits(after, DEC), attackerTUSD: formatUnits(drained, DEC), drained: formatUnits(drained, DEC) });
+
+  // Record this delegation + the sweeper contract on Arkiv (The Blacklist). Best-effort.
+  if (arkivEnabled()) {
+    E({ step: "log", msg: "Recording delegation on Arkiv…" });
+    const net = chain.id === 11155111 ? "sepolia" : chain.id === 31337 ? "local" : `chain-${chain.id}`;
+    const now = String(Date.now());
+    const key = await recordDelegation({
+      chain: net, victim: victim.address, delegate: sweeper, attacker, token: tusd,
+      drained: formatUnits(drained, DEC), delegateTx: dHash, sweepTx: sHash,
+      block: String(sRc.blockNumber), status: "drained", ts: now,
+    });
+    const sweeperCode = (code ?? "0x") as Hex;
+    await upsertDelegate({
+      chain: net, address: sweeper, bytecodeHash: keccak256(sweeperCode), label: "suspicious",
+      labelSource: "chainwall-demo: forwards entire balance to one hardcoded address",
+      delegatorCount: "1", firstSeenBlock: String(dRc.blockNumber), ts: now,
+    });
+    if (key) E({ step: "arkiv", msg: "Recorded on Arkiv", arkivKey: key });
+  }
+
   E({ step: "done", msg: "Attack complete.", txHash: sHash });
 }

@@ -2,7 +2,7 @@ export type Step =
   | "setup" | "before" | "sign" | "sign-progress" | "sign-done"
   | "delegate" | "delegate-sent" | "delegate-mined"
   | "verify" | "sweep" | "sweep-sent" | "sweep-mined"
-  | "after" | "done" | "closed" | "warn" | "error" | "fatal" | "stderr" | "log";
+  | "after" | "arkiv" | "done" | "closed" | "warn" | "error" | "fatal" | "stderr" | "log";
 
 export interface AttackEvent {
   t?: number;
@@ -18,6 +18,8 @@ export interface AttackEvent {
   txHash?: string; block?: number; status?: string;
   // verify
   delegated?: boolean; code?: string;
+  // arkiv
+  arkivKey?: string;
 }
 
 export type Emit = (e: AttackEvent) => void;
