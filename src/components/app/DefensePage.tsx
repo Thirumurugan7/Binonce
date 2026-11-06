@@ -10,6 +10,7 @@ import { MoneyPanel, type Note } from "./MoneyPanel";
 import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState } from "./DefenseTrace";
 import type { DefenseEvent } from "@/lib/defense-types";
 import { num, shortAddr } from "@/lib/format";
+import { Toaster, toast } from "@/components/toast";
 
 /**
  * The Chainwall SSE backend was removed while the defense is rebuilt. Set this to true once a new
@@ -56,20 +57,22 @@ export function DefensePage() {
     const t = e.t ?? Date.now();
     switch (e.step) {
       case "setup": setTrace((tr) => ({ ...tr, carol: e.carol ?? null })); addLine(t, e.msg ?? "", "go"); break;
-      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); break;
+      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Creating the vault", body: "Registry, execution engine and vault, on-chain." }, "vault"); break;
       case "vault-deployed": setTrace((tr) => ({ ...tr, registry: e.registry ?? null, interact: e.interact ?? null })); addLine(t, e.msg ?? ""); break;
       case "configure": addLine(t, e.msg ?? ""); break;
       case "vault-ready": setTrace((tr) => ({ ...tr, vault: e.vault ?? null })); addLine(t, e.msg ?? ""); break;
       case "fund":
         setTrace((tr) => ({ ...tr, fundUSDC: e.vaultUSDC ?? null }));
         setStep("vault", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
+        toast.success({ title: "Vault funded", body: `${e.vaultUSDC ?? ""} USDC, guarded by a 2-of-2 policy.` }, "vault");
         break;
-      case "payout-propose": activate("payout"); addLine(t, e.msg ?? "", "go"); break;
+      case "payout-propose": activate("payout"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Running a normal payout", body: "Alice proposes, Bob approves." }, "payout"); break;
       case "payout-approve": case "payout-exec": addLine(t, e.msg ?? ""); break;
       case "payout-done":
         setTrace((tr) => ({ ...tr, recipientUSDC: e.recipientUSDC ?? null, vaultUSDC: e.vaultUSDC ?? null }));
         setStep("payout", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
         addNote("ok", "Payment sent", `${e.recipientUSDC ?? ""} USDC · approved by 2 of 2`);
+        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC, approved by 2 of 2.` }, "payout");
         break;
       case "delegate": activate("hijack"); addLine(t, e.msg ?? "", "hot"); break;
       case "delegate-deploy": setTrace((tr) => ({ ...tr, delegate: e.delegate ?? null })); addLine(t, e.msg ?? "", "hot"); break;
@@ -77,25 +80,30 @@ export function DefensePage() {
         setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, carolCode: e.code ?? null, delegate: e.delegate ?? tr.delegate }));
         setStep("hijack", "done"); addLine(t, e.msg ?? "", "hot");
         addNote("warn", "Signer changed", "An EIP-7702 delegation was added to Carol’s account.");
+        toast.warning({ title: "A signer was taken over", body: "Carol’s account now runs the attacker’s contract." }, "hijack");
         break;
       case "detect":
         activate("detect"); setStep("detect", "done");
         setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, delegate: e.delegate ?? tr.delegate }));
         addLine(t, e.msg ?? "", "ok");
+        toast.info({ title: "Chainwall spotted the delegation", body: "Carol’s code starts with 0xef0100." }, "detect");
         break;
       case "attack":
         activate("refuse");
         setTrace((tr) => ({ ...tr, attempted: e.amount ?? e.attempted ?? null }));
         addLine(t, e.msg ?? "", "hot");
         addNote("warn", "Withdrawal attempt", `${e.amount ?? ""} USDC · via Carol’s account`);
+        toast.loading({ title: "Attacker is trying to withdraw", body: `${e.amount ?? ""} USDC through Carol’s account.` }, "refuse");
         break;
       case "refuse":
         setTrace((tr) => ({ ...tr, reason: e.reason ?? null, vaultUSDC: e.vaultUSDC ?? tr.vaultUSDC, attackerUSDC: e.attackerUSDC ?? "0", attempted: e.attempted ?? tr.attempted }));
         setStep("refuse", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
         addNote("ok", "Withdrawal blocked", "The vault refused a signer running someone else’s code.");
+        toast.success({ title: "Withdrawal refused", body: `${e.reason ?? "ActorDelegated"}. The attacker received nothing.` }, "refuse");
         break;
       case "done": addLine(t, e.msg ?? "", "ok"); finish(); break;
-      case "error": case "fatal": case "stderr": addLine(t, e.msg ?? "", "hot"); break;
+      case "error": case "fatal": addLine(t, e.msg ?? "", "hot"); toast.error({ title: "The run hit an error", body: e.msg ?? "See the log." }); break;
+      case "stderr": addLine(t, e.msg ?? "", "hot"); break;
       case "closed": finish(); break;
       default: if (e.msg) addLine(t, e.msg);
     }
@@ -186,6 +194,7 @@ export function DefensePage() {
           </aside>
         </div>
       </main>
+      <Toaster />
     </>
   );
 }

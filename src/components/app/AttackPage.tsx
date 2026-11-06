@@ -4,15 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, Coins, RotateCcw } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
-import { Walkthrough } from "./Walkthrough";
 import { Terminal } from "./Terminal";
-import { MoneyPanel, type Note } from "./MoneyPanel";
-import { ATTACK_STEPS, AttackEvidence, type TraceState } from "./AttackTrace";
+import { type TraceState } from "./AttackTrace";
+import { AttackStage, RunSummary, phaseOf, type Phase } from "./AttackStage";
+import { Toaster, toast } from "@/components/toast";
 import { ActivityPanel } from "./ActivityPanel";
 import { MintModal } from "./MintModal";
 import { SetupNotice } from "./SetupNotice";
 import type { AttackEvent } from "@/lib/types";
 import { num, money, shortAddr } from "@/lib/format";
+import { ARKIV_EXPLORER } from "@/components/landing/links";
 
 const BASE = 2_500_000;
 const emptyTrace: TraceState = {
@@ -25,12 +26,12 @@ const explorerFor = (chain: string) => (chain === "Sepolia" ? "https://sepolia.e
 
 export function AttackPage() {
   const [tusd, setTusd] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const [victim, setVictim] = useState<string | null>(null);
   const [attacker, setAttacker] = useState<string | null>(null);
   const [stolen, setStolen] = useState(0);
   const [delegated, setDelegated] = useState(false);
-  const [draining, setDraining] = useState(false);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [previewPhase, setPreviewPhase] = useState<Phase>(0);
   const [trace, setTrace] = useState<TraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
@@ -42,7 +43,7 @@ export function AttackPage() {
 
   const esRef = useRef<EventSource | null>(null);
   const nonceStart = useRef(0);
-  const noteId = useRef(0);
+  const doneRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const t0 = useRef(0);
   const tusdRef = useRef(0);
@@ -52,7 +53,7 @@ export function AttackPage() {
   const fetchBalance = useCallback(() => {
     fetch("/api/balance").then((r) => r.json()).then((c) => {
       if (!c.configured) return;
-      setTusd(c.usdt ?? 0); setVictim(c.victim ?? null); setDelegated(!!c.delegated);
+      setTusd(c.usdt ?? 0); setVictim(c.victim ?? null); setDelegated(!!c.delegated); setLoaded(true);
     }).catch(() => {});
   }, []);
 
@@ -64,10 +65,6 @@ export function AttackPage() {
     return () => esRef.current?.close();
   }, [fetchBalance]);
 
-  const addNote = useCallback((kind: Note["kind"], title: string, sub: string) => {
-    const id = ++noteId.current;
-    setNotes((n) => [{ id, kind, title, sub, t: Date.now() }, ...n].slice(0, 4));
-  }, []);
   const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go", tx?: string) => {
     setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind, tx }] }));
   }, []);
@@ -102,6 +99,11 @@ export function AttackPage() {
     esRef.current?.close();
   }, []);
 
+  const txLink = useCallback((h?: string | null) => {
+    const ex = explorerFor(chain);
+    return h && ex ? { href: `${ex}/tx/${h}`, label: `tx ${shortAddr(h)}` } : undefined;
+  }, [chain]);
+
   const handle = useCallback((e: AttackEvent) => {
     const t = e.t ?? Date.now();
     switch (e.step) {
@@ -120,6 +122,7 @@ export function AttackPage() {
         nonceStart.current = e.victimNonce ?? 1;
         setTrace((tr) => ({ ...tr, nonces: { start: e.victimNonce ?? 1, signedUpto: 0, matchIndex: null, show: true } }));
         addLine(t, e.msg ?? "", "go");
+        toast.loading({ title: "Signing 50 authorizations", body: "With the stolen key, offline. Nothing is on-chain yet." }, "sign");
         break;
       case "sign-progress":
         setTrace((tr) => ({ ...tr, nonces: { ...tr.nonces, signedUpto: e.index ?? 0 } }));
@@ -129,20 +132,24 @@ export function AttackPage() {
         setTrace((tr) => ({ ...tr, nonces: { ...tr.nonces, signedUpto: 50, matchIndex: m } }));
         setStep("sign", "done");
         addLine(t, e.msg ?? "", "hot");
+        toast.success({ title: "50 authorizations signed", body: `Nonce ${e.matchingNonce ?? nonceStart.current} matches the wallet, so that one will take effect.` }, "sign");
         break;
       }
       case "delegate":
         activate("delegate");
         addLine(t, e.msg ?? "", "go");
+        toast.loading({ title: "Sending the delegation", body: "One type-4 transaction carrying all 50 authorizations." }, "delegate");
         break;
       case "delegate-sent":
         setTrace((tr) => ({ ...tr, delegateTx: e.txHash ?? null }));
         addLine(t, "Delegation tx sent", undefined, e.txHash);
+        toast.loading({ title: "Waiting for the delegation to confirm", body: "Transaction sent. The relayer paid the gas.", link: txLink(e.txHash) }, "delegate");
         break;
       case "delegate-mined":
         setStep("delegate", "done");
         setTrace((tr) => ({ ...tr, delegateBlock: e.block ?? null }));
         addLine(t, `Delegation confirmed in block ${e.block ?? ""}`, "ok");
+        setTrace((tr) => { toast.success({ title: "Delegation confirmed", body: `Included in block ${e.block ?? ""}.`, link: txLink(tr.delegateTx) }, "delegate"); return tr; });
         break;
       case "verify":
         if (e.delegated) {
@@ -151,20 +158,22 @@ export function AttackPage() {
           setTrace((tr) => ({ ...tr, victimCode: e.code ?? null }));
           setDelegated(true);
           addLine(t, e.msg ?? "", "hot");
-          addNote("warn", "Security notice", "A smart-contract delegation was added to your account.");
+          toast.warning({ title: "The wallet has been taken over", body: "Its code is now 0xef0100 + the sweeper’s address. It runs the attacker’s contract." }, "verify");
         } else {
           setStep("verify", "fail");
           addLine(t, e.msg ?? "", "hot");
+          toast.error({ title: "The delegation didn’t take effect", body: "Check the chain supports type-4 transactions. Details are in the log." }, "verify");
         }
         break;
       case "sweep":
         activate("sweep");
         addLine(t, e.msg ?? "", "hot");
-        addNote("warn", "Withdrawal submitted", `${money(BASE)} tUSD · processing`);
+        toast.loading({ title: "Draining the wallet", body: "Calling the sweeper through the hijacked wallet." }, "sweep");
         break;
       case "sweep-sent":
         setTrace((tr) => ({ ...tr, sweepTx: e.txHash ?? null }));
         addLine(t, "Sweep tx sent", undefined, e.txHash);
+        toast.loading({ title: "Waiting for the sweep to confirm", body: "One call moves the whole balance.", link: txLink(e.txHash) }, "sweep");
         break;
       case "sweep-mined":
         setStep("sweep", "done");
@@ -174,23 +183,30 @@ export function AttackPage() {
       case "after": {
         const drained = num(e.drained ?? "") || BASE;
         setTrace((tr) => ({ ...tr, attackerRecv: e.attackerTUSD ?? null }));
-        setDraining(true);
-        tween(num(e.victimTUSD ?? "0"), drained, 2200, () => addNote("ok", "Withdrawal completed", `${money(drained)} tUSD sent to an external address`));
+                tween(num(e.victimTUSD ?? "0"), drained, 2200);
         addLine(t, `Drained ${e.drained} tUSD to the attacker`, "hot");
+        setTrace((tr) => { toast.warning({ title: `${money(drained)} tUSD drained`, body: "The whole balance went to the attacker in one call.", link: txLink(tr.sweepTx) }, "sweep"); return tr; });
         break;
       }
       case "arkiv":
         setTrace((tr) => ({ ...tr, arkivKey: e.arkivKey ?? null }));
         addLine(t, `${e.msg}${e.arkivKey ? ` · ${e.arkivKey.slice(0, 10)}…` : ""}`, "ok");
+        toast.success({ title: "Saved to Arkiv", body: "This run and its sweeper are now in the public registry.", link: e.arkivKey ? { href: `${ARKIV_EXPLORER}/entity/${e.arkivKey}`, label: `${e.arkivKey.slice(0, 10)}…` } : undefined }, "arkiv");
         break;
       case "done":
         addLine(t, e.msg ?? "", "ok");
+        doneRef.current = true;
         setElapsed(Date.now() - t0.current);
+        toast.success({ title: "Replay finished", body: `Took ${((Date.now() - t0.current) / 1000).toFixed(1)} s. Every step above links to its transaction.` }, "done");
         finish();
         fetchBalance();
         setActivityVersion((v) => v + 1);
         break;
-      case "error": case "fatal": case "stderr":
+      case "error": case "fatal":
+        addLine(t, e.msg ?? "", "hot");
+        toast.error({ title: "The run hit an error", body: e.msg ?? "See the log for details." });
+        break;
+      case "stderr":
         addLine(t, e.msg ?? "", "hot");
         break;
       case "closed":
@@ -199,11 +215,11 @@ export function AttackPage() {
       default:
         if (e.msg) addLine(t, e.msg);
     }
-  }, [addLine, addNote, activate, setStep, tween, fetchBalance, finish]);
+  }, [addLine, activate, setStep, tween, fetchBalance, finish, txLink]);
 
   const clear = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    setDraining(false); setNotes([]); setTrace(emptyTrace); setStolen(0); setElapsed(null);
+    setTrace(emptyTrace); setStolen(0); setElapsed(null); setPreviewPhase(0);
   }, []);
 
   const run = useCallback(() => {
@@ -211,14 +227,21 @@ export function AttackPage() {
     clear();
     setRunning(true);
     t0.current = Date.now();
+    doneRef.current = false;
+    toast.clear();
+    toast.info({ title: `Attack started on ${chain}`, body: "Follow the diagram. Each step is a real transaction." });
+    document.getElementById("stage")?.scrollIntoView({ behavior: "smooth", block: "start" });
     const es = new EventSource("/api/run");
     esRef.current = es;
     es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch { /* ignore malformed line */ } };
-    es.onerror = () => { es.close(); finish(); };
-  }, [running, clear, handle, finish]);
+    es.onerror = () => {
+      es.close(); finish();
+      if (!doneRef.current) toast.error({ title: "Lost the connection to the run", body: "The chain may still finish it. Refresh to see the wallet’s real balance." });
+    };
+  }, [running, clear, handle, finish, chain]);
 
   const onMinted = useCallback((balance: number) => {
-    setTusd(balance); setDraining(false);
+    setTusd(balance);
     setActivityVersion((v) => v + 1);
     fetchBalance();
   }, [fetchBalance]);
@@ -227,6 +250,9 @@ export function AttackPage() {
   const ready = configured === true;
   const finished = trace.steps.sweep === "done";
   const started = trace.lines.length > 0;
+  const livePhase = phaseOf(trace.steps);
+  const preview = !started && previewPhase > 0;
+  const stagePhase: Phase = preview ? previewPhase : livePhase;
   const status = configured === false ? "Chain not set up" : running ? "Running…" : finished ? "Finished" : "Ready";
 
   return (
@@ -238,8 +264,8 @@ export function AttackPage() {
             <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">Attack replay</h1>
             <p className="text-[16px] leading-relaxed text-bn-ink-2 mt-4 mb-0 max-w-[42rem]">
               Replays the October 2026 Binance hot-wallet drain against a test wallet on {chain}. Press
-              {" "}<b className="font-medium text-bn-ink">Launch attack</b> and follow along: the steps explain what’s
-              happening, the log shows every real transaction, and the panel on the right shows where the money goes.
+              {" "}<b className="font-medium text-bn-ink">Launch attack</b>: the diagram shows who does what, the
+              notifications explain each step as it happens, and the log underneath shows every real transaction.
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-2.5">
@@ -256,47 +282,24 @@ export function AttackPage() {
 
         {configured === false && <SetupNotice />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
-          <div className="flex flex-col gap-6 min-w-0">
-            <Walkthrough
-              steps={ATTACK_STEPS}
-              statuses={trace.steps}
-              evidence={(k, st) => <AttackEvidence k={k} st={st} state={trace} explorer={explorer} />}
-              finale={
-                <>
-                  <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] leading-tight text-bn-ink mt-2 mb-0">The wallet is empty.</h2>
-                  <p className="text-[15.5px] leading-relaxed text-bn-ink-2 mt-3 mb-0 max-w-[44rem]">
-                    {trace.attackerRecv ?? money(BASE)} tUSD went to the attacker in two transactions
-                    {elapsed ? `, ${(elapsed / 1000).toFixed(1)} seconds after pressing Launch` : ""}. The owner never signed
-                    anything, and their app only showed what looked like a normal withdrawal.
-                  </p>
-                </>
-              }
-            />
-            <Terminal
-              lines={trace.lines} running={running} explorer={explorer}
-              command={`binonce attack --chain ${chain.toLowerCase().replace(/\s+/g, "-")}`}
-              idle={ready ? "Waiting. Press Launch attack to start." : "Waiting for the chain. See the setup note above."}
-            />
-          </div>
+        <div id="stage" className="scroll-mt-20">
+          <AttackStage
+            phase={stagePhase} preview={preview} trace={preview ? emptyTrace : trace}
+            victimBal={preview ? (previewPhase >= 4 ? 0 : BASE) : loaded || started ? tusd : null}
+            attackerBal={preview ? (previewPhase >= 4 ? BASE : 0) : stolen}
+            victim={victim} attacker={attacker} explorer={explorer}
+            leftover={!preview && livePhase === 0 && delegated}
+            onPick={(p) => { if (!started) setPreviewPhase((cur) => (cur === p ? 0 : p)); }}
+          />
+        </div>
 
-          <aside className="lg:sticky lg:top-24">
-            <MoneyPanel
-              top={{
-                label: "Hot wallet", who: "the victim", address: victim ? shortAddr(victim) : null,
-                amount: tusd, sym: "tUSD", flash: draining ? "ember" : undefined,
-                status: delegated ? { text: started ? "taken over" : "still delegated from a past run", tone: "ember" } : { text: "normal wallet", tone: "seal" },
-              }}
-              bottom={{
-                label: "Attacker", who: "receives the sweep", address: attacker ? shortAddr(attacker) : null,
-                amount: stolen, sym: "tUSD", flash: stolen > 0 ? "ember" : undefined,
-              }}
-              flow={finished ? "Moved by one call to the sweeper" : "If the attack works, the balance moves here"}
-              notes={notes}
-              notesTitle="What the owner sees"
-              notesHint="Notifications the owner’s wallet app would show."
-            />
-          </aside>
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-stretch">
+          <Terminal
+            lines={trace.lines} running={running} explorer={explorer}
+            command={`binonce attack --chain ${chain.toLowerCase().replace(/\s+/g, "-")}`}
+            idle={ready ? "Waiting. Press Launch attack to start." : "Waiting for the chain. See the setup note above."}
+          />
+          <RunSummary phase={livePhase} signed={trace.nonces.signedUpto} txs={(trace.delegateTx ? 1 : 0) + (trace.sweepTx ? 1 : 0)} moved={stolen} elapsed={elapsed} />
         </div>
 
         <section aria-labelledby="record" className="mt-14">
@@ -315,6 +318,7 @@ export function AttackPage() {
         <Button variant="danger" className="ml-auto" onClick={run} disabled={!ready || running}>{running ? "Running…" : "Launch attack"}</Button>
       </div>
 
+      <Toaster />
       <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorer} arkiv={arkiv} />
     </>
   );

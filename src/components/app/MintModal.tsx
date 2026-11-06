@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, Check, ArrowUpRight, Coins } from "lucide-react";
 import { money } from "@/lib/format";
+import { toast } from "@/components/toast";
 
 interface MintResult { tx: string; block: number; amount: string; balance: string; arkivKey?: string | null }
 
@@ -37,6 +38,7 @@ export function MintModal({
   const submit = async () => {
     if (state === "minting") return;
     setState("minting"); setError(null);
+    const tid = toast.loading({ title: `Minting ${money(Number(amount)).replace(".00", "")} tUSD`, body: "Topping up the test wallet. The relayer pays the gas." });
     try {
       const r = await fetch("/api/mint", {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amount }),
@@ -45,9 +47,14 @@ export function MintModal({
       setResult(r);
       setState("done");
       onMinted(Number(r.balance));
+      toast.success({
+        title: "Wallet topped up", body: `New balance ${money(Number(r.balance))} tUSD${r.arkivKey ? " · saved to Arkiv" : ""}.`,
+        link: explorer ? { href: `${explorer}/tx/${r.tx}`, label: `tx ${r.tx.slice(0, 10)}…` } : undefined,
+      }, tid);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setState("error");
+      toast.error({ title: "Top-up failed", body: e instanceof Error ? e.message : String(e) }, tid);
     }
   };
 
