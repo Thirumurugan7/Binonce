@@ -1,9 +1,13 @@
 # Chainwall × Binance EIP-7702 — Attack & Defense Demo
 
-A **Next.js + Tailwind** app that runs **both halves** of the EIP-7702 story on-chain, inside a
-faithful Binance wallet UI:
+<img src="public/binonce-loader.svg" width="56" alt="Binonce" />
 
-- **`/` — the attack.** Executes the real Oct 29 2026 Binance EIP-7702 hot-wallet drain.
+**Binonce** is a **Next.js + Tailwind** app that runs **both halves** of the EIP-7702 story on-chain. Each app
+page shows what the wallet's owner sees next to what the chain actually records:
+
+- **`/` — the landing page.** What Binonce is, how the drain works, and where each part stands.
+  Light and dark themes throughout; see [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
+- **`/attack` — the attack.** Executes the real Oct 29 2026 Binance EIP-7702 hot-wallet drain.
 - **`/defense` — the defense.** Runs the real **Chainwall** (The Lock) protocol that stops it.
 
 This is **not** a UI animation. On the attack page, "Launch attack" deploys real contracts, signs
@@ -21,11 +25,11 @@ Needs [Foundry](https://getfoundry.sh) (`anvil`) and Node 18+.
 npm install
 npm run chain        # terminal 1: anvil on the Prague hardfork (real 7702 support)
 npm run setup        # terminal 2: deploys contracts, writes .env
-npm run dev          # http://localhost:3000  → click "Launch attack"
+npm run dev          # http://localhost:3000/attack  → click "Launch attack"
 ```
 
 Each run uses a **fresh victim** (minted 2,500,000 tUSD), so the attack is repeatable. The attack
-executes in well under a second on anvil. Visit **/styleguide** for the design system.
+executes in well under a second on anvil. Visit **/styleguide** for the design system (see also [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)).
 
 ## Run it on Sepolia (real public testnet)
 
@@ -72,7 +76,7 @@ refresh it.
 The app has two independent flows. Both are real on-chain runs streamed to the UI over SSE; neither
 is scripted animation.
 
-### ⚔️ Offense — the attack (`/`)
+### ⚔️ Offense — the attack (`/attack`)
 
 Why it works: a delegated EOA's code is exactly 23 bytes, `0xef0100 ‖ delegate`. A single valid
 signature at the account's current nonce is enough to install that delegation — no transaction from
@@ -133,14 +137,14 @@ chance to be checked — the actor is rejected first.
 ## Layout
 
 ```
-src/app/            / (attack), /defense (Chainwall), styleguide
+src/app/            / (landing), /attack, /defense (Chainwall), styleguide
                     api/run + api/config          — attack SSE + offense config
                     api/defend + api/defense-config — defense SSE + fork/factory readiness
                     api/reset, api/balance, api/mint, api/arkiv/activity
-src/components/     Nav, ModeSwitch (Attack↔Defense), BalanceCard, AssetsTable, Toasts, CoinIcon
-                    Dashboard + AttackModal + DemoBar       — offense UI
-                    DefenseDashboard + DefenseModal + DefenseBar — defense UI
-                    ActivityPanel, MintModal
+src/components/     brand/   design-system primitives (Button, Tag, Mark, ThemeToggle, IntroLoader…)
+                    landing/ landing-page sections and explainers
+                    app/     AttackPage, DefensePage, AppNav, WalletView, TracePanel (+ Attack/DefenseTrace),
+                             ActivityPanel, MintModal
 src/lib/            attack.ts (on-chain attack), chain.ts (local|Sepolia|Arbitrum fork)
                     defense.ts (spawns the Chainwall e2e), defense-types.ts
                     deploy.ts, runtime.ts, abi.ts, mint.ts, arkiv.ts, types.ts, format.ts
@@ -175,9 +179,10 @@ importer **writes** it.
   [`docs/attack/detection.md`](docs/attack/detection.md) — tiny no-owner-check sweeper → `suspicious`,
   reused by ≥3 wallets → `likely-thief`, EIP-1167 proxies and large smart-account impls → `unknown`,
   `confirmed-thief` only hand-added with a verified source. We never assert "thief" from a heuristic.
-- **Config:** set `ARKIV_ACCESS_KEY` (https://hub.arkiv.network/access-keys) and `ARKIV_PK`
-  (funded with tGLM from https://hub.arkiv.network/faucet) in `.env`. Unset → the app runs with
-  the registry disabled.
+- **Config:** reads need nothing: the app always shows the public registry owned by
+  `ARKIV_WRITER` (default `0x7264…B4a9`), plus anything written by this server's own key.
+  To **write** new runs and mints, set `ARKIV_PK` (funded with tGLM from https://hub.arkiv.network/faucet);
+  `ARKIV_ACCESS_KEY` (https://hub.arkiv.network/access-keys) is optional and lifts the public endpoint's rate limit.
 
 ### One query you can run
 

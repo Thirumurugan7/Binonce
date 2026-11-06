@@ -1,48 +1,33 @@
 # UI & UX rationale
 
-The app is a Next.js + Tailwind rebuild of a faithful Binance "Assets Overview" page, used to
-stage the attack. The design system it draws on is in [style-guide.md](./style-guide.md).
+## Layout of the app pages
 
-## The core idea: two worlds
+- **Header:** what the page does in one sentence, and the run button.
+- **Walkthrough:** a step tracker; the narrator says in plain words what is happening now and why, with the
+  on-chain evidence underneath (nonce grid, code before/after, transaction links). Any step can be opened before a run.
+- **Live log:** the server-sent events of the run, always visible, with clickable transaction hashes.
+- **Money panel:** victim (or vault) above, attacker below, plus the notifications the owner would see.
+- **Saved to Arkiv:** recorded runs and blacklisted contracts, read from the public registry.
 
-The demo deliberately shows two surfaces at once:
+## Pages
 
-- **Light — the victim's Binance dashboard.** What a user sees: estimated balance, PnL, an
-  assets table. It stays calm and familiar while being drained.
-- **Dark (`night`) — the attack trace.** A slide-out inspector showing what's *really*
-  happening: the 50 nonces, the delegation marker, tx hashes, the console. Clearly not Binance
-  chrome.
-
-The boundary is strict: nothing from the dark chrome bleeds into the Binance surfaces. That
-contrast *is* the pitch — "this is what the user sees; this is what's actually happening."
-
-## Components
-
-| Component | Role |
+| Route | What it does |
 |---|---|
-| `Nav`, `WalletRail` | Binance chrome (logo, nav, wallet sidebar) |
-| `BalanceCard` | estimated balance, PnL, hide-balance eye, the red "unusual activity" alert |
-| `AssetsTable` | the USDT hot wallet (+ ETH/BNB dust); the drained row flashes |
-| `Toasts` | Binance-style notifications (security notice → withdrawal submitted → completed); shift left when the drawer opens |
-| `AttackTrace` | the dark inspector: 4 steps, 50-nonce grid, attacker-received, console |
-| `DemoBar` | fixed bottom bar: Rehearse / Run live / Attack trace. Dark + yellow top border so it reads as *not* Binance. |
-| `Dashboard` | orchestrator: holds state, tweens the balance, consumes the SSE stream |
+| `/` | Landing: thesis, real incident timeline, how the drain works (with two interactive explainers), defense comparison, Blacklist classifier, run instructions |
+| `/attack` | Runs the real EIP-7702 drain (`/api/run` SSE) and fills panels A and B live; Arkiv record below |
+| `/defense` | Chainwall walkthrough. The on-chain run is being rewired (`INTEGRATED` flag in `DefensePage.tsx`); all five steps are readable now |
+| `/styleguide` | Live design-system reference |
 
 ## Interaction choices
 
-- **Balance tweens** down with an ease-out cubic during the sweep — not a jump.
-- **Toasts** mirror a real exchange's withdrawal notifications; the chilling part is how normal they look.
-- **Live vs rehearsal**: `Rehearse` streams mock data (no gas); `Run attack (live)` is gated by `/api/config` until `.env` is set.
-- **Reduced motion** respected via `globals.css`.
-
-## Demo order (matches the drawer)
-
-break-in → 🔒 Lock holds → 🚨 Alarm fires → 📕 Blacklist names the thief.
-Full script in [../tracks/submission.md](../tracks/submission.md).
+- The balance eases down during the sweep, not a jump.
+- The run indicator is the Binonce mark looping: nonces signing, one landing.
+- Light and dark follow the system and can be toggled; the chain panels stay dark in both.
+- On phones a sticky bottom bar keeps **Launch** within reach.
+- Reduced motion: static end states, no loops, no intro.
 
 ## Event → UI mapping
 
-The SSE stream (`setup`, `sign`, `sign-progress`, `sign-done`, `delegate*`, `verify`, `sweep*`,
-`after`, `done`) drives the drawer steps, the nonce grid (matched cell highlighted), the alert
-banner, toasts, and the balance tween. Same events in demo and live. See
-[../attack/simulator.md](../attack/simulator.md).
+The SSE stream (`setup`, `sign`, `sign-progress`, `sign-done`, `delegate*`, `verify`, `sweep*`, `after`,
+`arkiv`, `done`) drives the step rail, the nonce grid, the alert, the notifications and the balance tween.
+See [../attack/simulator.md](../attack/simulator.md).

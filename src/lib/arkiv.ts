@@ -18,8 +18,29 @@ const CHAIN = (process.env.ARKIV_CHAIN || "rabdi").toLowerCase();
 
 export const EXPLORER = "https://rabdi.explorer.arkiv.network";
 
+/** The wallet that owns every Binonce entity. Reads filter by it, so they need no key of ours. */
+export const DEFAULT_WRITER = "0x7264fB117ce777888B1bD2eF66ED0CF4CA14B4a9" as const;
+
+/** Writes need a funded writer key. Reads are public and always on. */
 export function arkivEnabled() {
-  return Boolean(process.env.ARKIV_ACCESS_KEY && process.env.ARKIV_PK);
+  return Boolean(process.env.ARKIV_PK);
+}
+
+type Addr = `0x${string}`;
+
+/** Owner of the public registry (the importer's wallet). Override with ARKIV_WRITER. */
+function registryWriter(): Addr {
+  return (process.env.ARKIV_WRITER as Addr) || DEFAULT_WRITER;
+}
+
+/** Wallets whose entities we show: the registry writer, plus this server's own writer key if it differs. */
+function readOwners(): Addr[] {
+  const owners: Addr[] = [registryWriter()];
+  if (process.env.ARKIV_PK) {
+    const mine = privateKeyToAccount(process.env.ARKIV_PK as Hex).address;
+    if (!owners.some((o) => o.toLowerCase() === mine.toLowerCase())) owners.push(mine);
+  }
+  return owners;
 }
 
 export interface DelegationRecord {
@@ -80,9 +101,10 @@ async function build() {
     ts: str(),
   });
 
+  // Without an access key the SDK falls back to Arkiv's public (rate-limited) endpoint, which is fine for reads.
   const chain = chains.rabdi({ accessKey: process.env.ARKIV_ACCESS_KEY ?? "" });
-  const account = privateKeyToAccount(process.env.ARKIV_PK as Hex);
-  const wallet = sdk.createWalletClient({ chain, transport: http(), account });
+  const account = process.env.ARKIV_PK ? privateKeyToAccount(process.env.ARKIV_PK as Hex) : null;
+  const wallet = account ? sdk.createWalletClient({ chain, transport: http(), account }) : null;
   const pub = sdk.createPublicClient({ chain, transport: http() });
   const { ExpirationTime } = sdk;
   return { sdk, schema, query, Delegation, Delegate, Mint, wallet, pub, account, ExpirationTime, str, addr, dec };
@@ -100,11 +122,12 @@ export async function recordDelegation(r: DelegationRecord): Promise<string | nu
   if (!arkivEnabled()) return null;
   try {
     const c = await ctx();
-    const { entityKey } = await c.wallet.createEntity(c.Delegation, {
+    const { entityKey } = await c.wallet!.createEntity(c.Delegation, {
       chain: r.chain, victim: c.addr(r.victim), delegate: c.addr(r.delegate), attacker: c.addr(r.attacker),
       token: c.addr(r.token), drained: c.dec(r.drained), delegateTx: r.delegateTx, sweepTx: r.sweepTx,
       block: r.block, status: r.status, ts: r.ts,
     }, LONG(c));
+    invalidateActivity();
     return entityKey as string;
   } catch (e) { console.error("[arkiv] recordDelegation failed:", e); return null; }
 }
@@ -113,10 +136,11 @@ export async function recordMint(r: MintRecord): Promise<string | null> {
   if (!arkivEnabled()) return null;
   try {
     const c = await ctx();
-    const { entityKey } = await c.wallet.createEntity(c.Mint, {
+    const { entityKey } = await c.wallet!.createEntity(c.Mint, {
       chain: r.chain, token: c.addr(r.token), to: c.addr(r.to), amount: c.dec(r.amount),
       tx: r.tx, block: r.block, ts: r.ts,
     }, LONG(c));
+    invalidateActivity();
     return entityKey as string;
   } catch (e) { console.error("[arkiv] recordMint failed:", e); return null; }
 }
@@ -131,15 +155,15 @@ export async function upsertDelegate(r: DelegateRecord): Promise<string | null> 
       .select({ $key: true, delegatorCount: true })
       .from(c.Delegate)
       .where(and(eq("chain", r.chain), eq("address", c.addr(r.address))))
-      .ownedBy(c.account.address)
+      .ownedBy(c.account!.address)
       .fetch();
     if (entities.length > 0) {
       const row = entities[0];
       const next = String((Number(val(row.delegatorCount)) || 0) + 1);
-      await c.wallet.patchEntity(c.Delegate, row.$key, { set: { delegatorCount: next } });
+      await c.wallet!.patchEntity(c.Delegate, row.$key, { set: { delegatorCount: next } });
       return row.$key;
     }
-    const { entityKey } = await c.wallet.createEntity(c.Delegate, {
+    const { entityKey } = await c.wallet!.createEntity(c.Delegate, {
       chain: r.chain, address: c.addr(r.address), bytecodeHash: r.bytecodeHash, label: r.label,
       labelSource: r.labelSource ?? "chainwall-demo", delegatorCount: r.delegatorCount,
       firstSeenBlock: r.firstSeenBlock, ts: r.ts,
@@ -163,16 +187,16 @@ export async function importDelegate(r: DelegateRecord): Promise<{ key: string; 
       .select({ $key: true })
       .from(c.Delegate)
       .where(and(eq("chain", r.chain), eq("address", c.addr(r.address))))
-      .ownedBy(c.account.address)
+      .ownedBy(c.account!.address)
       .fetch();
     if (entities.length > 0) {
       const key = entities[0].$key;
-      await c.wallet.patchEntity(c.Delegate, key, {
+      await c.wallet!.patchEntity(c.Delegate, key, {
         set: { label: r.label, labelSource: r.labelSource ?? "", delegatorCount: r.delegatorCount, firstSeenBlock: r.firstSeenBlock, ts: r.ts },
       });
       return { key: key as string, created: false };
     }
-    const { entityKey } = await c.wallet.createEntity(c.Delegate, {
+    const { entityKey } = await c.wallet!.createEntity(c.Delegate, {
       chain: r.chain, address: c.addr(r.address), bytecodeHash: r.bytecodeHash, label: r.label,
       labelSource: r.labelSource ?? "", delegatorCount: r.delegatorCount, firstSeenBlock: r.firstSeenBlock, ts: r.ts,
     }, LONG(c));
@@ -185,55 +209,67 @@ const val = (cell: unknown) =>
   cell && typeof cell === "object" && "value" in (cell as object) ? String((cell as { value: unknown }).value) : "";
 
 export interface Activity {
+  /** true when the read succeeded */
   enabled: boolean;
+  /** true when this server can also write (ARKIV_PK set) */
+  writes: boolean;
+  error?: string;
   writer: string | null;
   delegations: (DelegationRecord & { key: string })[];
   mints: (MintRecord & { key: string })[];
   delegates: (DelegateRecord & { key: string })[];
 }
 
+// The public endpoint is rate-limited, so reads are cached briefly and refreshed after our own writes.
+let _cache: { at: number; data: Activity } | null = null;
+const TTL = 15_000;
+export function invalidateActivity() { _cache = null; }
+
 export async function getActivity(): Promise<Activity> {
-  if (!arkivEnabled()) return { enabled: false, writer: null, delegations: [], mints: [], delegates: [] };
+  if (_cache && Date.now() - _cache.at < TTL) return _cache.data;
   try {
     const c = await ctx();
-    const owner = c.account.address;
+    const owners = readOwners();
+    const fetchAll = async <T,>(q: (owner: Addr) => Promise<{ entities: readonly T[] }>) => (await Promise.all(owners.map(q))).flatMap((r) => r.entities);
 
-    const dq = await c.pub.select({
+    const dq = await fetchAll((owner) => c.pub.select({
       $key: true, chain: true, victim: true, delegate: true, attacker: true, token: true,
       drained: true, delegateTx: true, sweepTx: true, block: true, status: true, ts: true,
-    }).from(c.Delegation).ownedBy(owner).fetch();
+    }).from(c.Delegation).ownedBy(owner).fetch());
 
-    const mq = await c.pub.select({
+    const mq = await fetchAll((owner) => c.pub.select({
       $key: true, chain: true, token: true, to: true, amount: true, tx: true, block: true, ts: true,
-    }).from(c.Mint).ownedBy(owner).fetch();
+    }).from(c.Mint).ownedBy(owner).fetch());
 
-    const gq = await c.pub.select({
+    const gq = await fetchAll((owner) => c.pub.select({
       $key: true, chain: true, address: true, bytecodeHash: true, label: true,
       labelSource: true, delegatorCount: true, firstSeenBlock: true, ts: true,
-    }).from(c.Delegate).ownedBy(owner).fetch();
+    }).from(c.Delegate).ownedBy(owner).fetch());
 
     const byTsDesc = (a: { ts: string }, b: { ts: string }) => Number(b.ts || 0) - Number(a.ts || 0);
 
-    const delegations = dq.entities.map((e) => ({
+    const delegations = dq.map((e) => ({
       key: e.$key as string, chain: val(e.chain), victim: val(e.victim), delegate: val(e.delegate),
       attacker: val(e.attacker), token: val(e.token), drained: val(e.drained), delegateTx: val(e.delegateTx),
       sweepTx: val(e.sweepTx), block: val(e.block), status: val(e.status), ts: val(e.ts),
     })).sort(byTsDesc);
 
-    const mints = mq.entities.map((e) => ({
+    const mints = mq.map((e) => ({
       key: e.$key as string, chain: val(e.chain), token: val(e.token), to: val(e.to),
       amount: val(e.amount), tx: val(e.tx), block: val(e.block), ts: val(e.ts),
     })).sort(byTsDesc);
 
-    const delegates = gq.entities.map((e) => ({
+    const delegates = gq.map((e) => ({
       key: e.$key as string, chain: val(e.chain), address: val(e.address), bytecodeHash: val(e.bytecodeHash),
       label: val(e.label), labelSource: val(e.labelSource), delegatorCount: val(e.delegatorCount),
       firstSeenBlock: val(e.firstSeenBlock), ts: val(e.ts),
     })).sort(byTsDesc);
 
-    return { enabled: true, writer: owner, delegations, mints, delegates };
+    const data = { enabled: true, writes: arkivEnabled(), writer: registryWriter(), delegations, mints, delegates };
+    _cache = { at: Date.now(), data };
+    return data;
   } catch (e) {
     console.error("[arkiv] getActivity failed:", e);
-    return { enabled: true, writer: null, delegations: [], mints: [], delegates: [] };
+    return { enabled: false, writes: arkivEnabled(), writer: registryWriter(), delegations: [], mints: [], delegates: [], error: "Couldn’t reach Arkiv. Try refreshing." };
   }
 }
