@@ -1,4 +1,4 @@
-import { LandingNav, Hero, Timeline, Anatomy, TwoViews, Layers, Blacklist, RunIt, Footer } from "@/components/landing";
+import { LandingNav, Hero, Cases, Timeline, Anatomy, TwoViews, Layers, Blacklist, RunIt, Footer } from "@/components/landing";
 import { IntroLoader } from "@/components/brand";
 
 export default function Landing() {
@@ -11,6 +11,7 @@ export default function Landing() {
       <LandingNav />
       <main>
         <Hero />
+        <Cases />
         <Timeline />
         <Anatomy />
         <TwoViews />

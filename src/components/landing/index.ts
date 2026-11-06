@@ -1,6 +1,7 @@
 export { LandingNav } from "./LandingNav";
 export { Hero } from "./Hero";
 export { Timeline } from "./Timeline";
+export { Cases } from "./Cases";
 export { Anatomy } from "./Anatomy";
 export { TwoViews } from "./TwoViews";
 export { Layers } from "./Layers";

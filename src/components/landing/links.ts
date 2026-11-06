@@ -6,6 +6,7 @@ export const ARKIV_EXPLORER = "https://rabdi.explorer.arkiv.network";
 export const CHAINWALL = "https://github.com/okcontract/chainwall";
 
 export const SECTIONS = [
+  { id: "cases", label: "Cases" },
   { id: "drain", label: "The drain" },
   { id: "two-views", label: "Two views" },
   { id: "layers", label: "Defense" },
