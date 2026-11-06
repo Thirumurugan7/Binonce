@@ -12,7 +12,7 @@ defended by OKcontract Chainwall.
 |---|---|
 | [`tracks/`](./tracks) | The three ETHGlobal partner tracks we target, and submission rules |
 | [`attack/`](./attack) | EIP-7702 explained, the Binance incident, how the simulator works |
-| [`contracts/`](./contracts) | The Solidity (Sweeper, TestUSD) and how to deploy |
+| [`contracts/`](./contracts) | The Solidity (Sweeper, TestUSD, TestUSDC), how Chainwall stops 7702, and the live [Whitechain deployment](./contracts/whitechain-deployment.md) |
 | [`design/`](./design) | Design system / style guide and the UI-UX rationale |
 | [`setup/`](./setup) | Getting started, environment, and the CLI scripts |
 
