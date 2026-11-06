@@ -33,8 +33,8 @@ export function MetricsBoard() {
 
       <div className="relative flex items-center gap-3 px-5 sm:px-7 h-12 border-b border-bn-night-line text-[12.5px]">
         <span className="h-1.5 w-1.5 rounded-full bg-bn-ember-glow" aria-hidden />
-        <span className="text-bn-fog">29 Oct 2026 · the Binance drain</span>
-        <span className="ml-auto text-bn-fog-2">in numbers</span>
+        <span className="text-bn-fog">The largest case: Binance, 29 Oct 2026</span>
+        <a href="#cases" className="bn-focus rounded ml-auto text-bn-fog-2 hover:text-bn-fog underline decoration-bn-night-line underline-offset-4">other cases</a>
       </div>
 
       {/* headline metric */}

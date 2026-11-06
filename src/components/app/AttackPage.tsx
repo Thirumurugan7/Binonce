@@ -263,7 +263,8 @@ export function AttackPage() {
           <div className="flex-1 min-w-[18rem]">
             <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">Attack replay</h1>
             <p className="text-[16px] leading-relaxed text-bn-ink-2 mt-4 mb-0 max-w-[42rem]">
-              Replays the October 2026 Binance hot-wallet drain against a test wallet on {chain}. Press
+              Replays an EIP-7702 leaked-key drain against a test wallet on {chain}, modelled on the largest case so far:
+              Binance, October 2026. Press
               {" "}<b className="font-medium text-bn-ink">Launch attack</b>: the diagram shows who does what, the
               notifications explain each step as it happens, and the log underneath shows every real transaction.
             </p>

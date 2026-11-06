@@ -45,9 +45,9 @@ export function Timeline() {
     <section ref={outer} aria-labelledby="incident" className="relative border-y border-bn-line bg-bn-paper-2/60" style={{ height: `${EVENTS.length * 55 + 45}vh` }}>
       <div className="sticky top-16 h-[calc(100vh-4rem)] flex flex-col justify-center max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-10">
         <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
-          <Reveal><Eyebrow>29 October 2026</Eyebrow></Reveal>
+          <Reveal><Eyebrow>Binance · 29 October 2026</Eyebrow></Reveal>
           <Reveal delay={0.05} className="flex-1 min-w-[16rem]">
-            <h2 id="incident" className="font-serif font-normal text-display-s text-bn-ink m-0">What happened, in four moments.</h2>
+            <h2 id="incident" className="font-serif font-normal text-display-s text-bn-ink m-0">The biggest case, in four moments.</h2>
           </Reveal>
           <span className="font-mono text-[11.5px] text-bn-muted" aria-hidden>{on + 1} / {EVENTS.length} · keep scrolling</span>
         </div>

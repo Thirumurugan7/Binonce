@@ -10,7 +10,7 @@ const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["nor
 export const metadata: Metadata = {
   title: { default: "Binonce — A valid signature is not an approved action", template: "%s" },
   description:
-    "Binonce replays the October 2026 Binance EIP-7702 hot-wallet drain on a real chain, step by step, and records every sweeper it sees to a public on-chain blacklist.",
+    "Binonce replays EIP-7702 wallet drains on a real chain, step by step, starting with the October 2026 Binance hot-wallet drain, and records every sweeper it sees to a public on-chain blacklist.",
 };
 
 // Before paint: apply the saved theme (or the system one) and skip the intro after the first visit this session.
