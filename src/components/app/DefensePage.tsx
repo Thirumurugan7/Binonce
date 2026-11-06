@@ -135,6 +135,7 @@ export function DefensePage() {
           <aside className="flex flex-col gap-5 xl:sticky xl:top-20">
             <StepsPanel
               title="How the vault refuses it" sub="Chainwall, step by step" tone="seal" live={phase > 0 && phase < 5}
+              intro={<>Same stolen-key trick as the attack page. Open any step to see what the vault does and why the drain fails.</>}
               steps={DEFENSE_STEPS} statuses={trace.steps}
               evidence={(k, st) => <DefenseEvidence k={k} st={st} state={trace} />}
               footer={

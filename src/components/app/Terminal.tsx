@@ -23,7 +23,7 @@ export function Terminal({ lines, running, explorer, command, idle }: {
         <span className="text-[12px] text-bn-fog-2">{lines.length ? `${lines.length} lines` : "empty"}</span>
         <span className="ml-auto">{lines.length > 0 && <CopyButton text={text} label="Copy log" onNight />}</span>
       </div>
-      <div ref={ref} className="h-[300px] overflow-auto scroll-nice px-5 py-4 font-mono text-[12.5px] leading-[1.75]" role="log" aria-live="polite" aria-label="Live log">
+      <div ref={ref} className="h-[360px] overflow-auto scroll-nice px-5 py-4 font-mono text-[12.5px] leading-[1.75]" role="log" aria-live="polite" aria-label="Live log">
         <div className="text-bn-fog-2"><span className="text-bn-ember-glow">$</span> {command}</div>
         {lines.length === 0 && !running && <div className="text-bn-fog-2 mt-1">{idle}</div>}
         {lines.map((l, i) => (

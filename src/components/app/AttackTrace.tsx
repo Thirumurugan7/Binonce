@@ -20,18 +20,18 @@ export interface TraceState {
 export type AttackKey = keyof TraceState["steps"];
 
 export const ATTACK_STEPS: Step<AttackKey>[] = [
-  { key: "sign", title: "Sign",
-    now: "The stolen key signs 50 permission slips.",
-    why: "Each EIP-7702 authorization says “let this wallet run the sweeper contract’s code.” They are signed offline with the leaked private key, so nothing shows up on-chain or in the owner’s app yet." },
-  { key: "delegate", title: "Send",
+  { key: "sign", title: "1 · Sign fake permissions",
+    now: "The stolen key signs 50 permission slips — in secret.",
+    why: "Each EIP-7702 authorization says “let this wallet run the attacker’s contract.” They’re signed offline with the leaked key, so nothing shows up on-chain or in the owner’s app yet. This is the step the portfolio on the left cannot see." },
+  { key: "delegate", title: "2 · Send them to the chain",
     now: "One transaction carries all 50 to the chain.",
-    why: "A relayer controlled by the attacker sends them in a single type-4 transaction and pays the fee. The owner never sees a confirmation prompt, because they aren’t the one sending." },
-  { key: "verify", title: "Take over",
-    now: "The wallet turns into the attacker’s contract.",
-    why: "Only the authorization that matches the wallet’s current nonce takes effect; the other 49 were spares. The wallet’s code changes from empty to 0xef0100 followed by the sweeper’s address. It still has the same address and balance, but it now runs someone else’s code." },
-  { key: "sweep", title: "Drain",
-    now: "One call sends everything to the attacker.",
-    why: "The relayer calls the wallet. Because the wallet now runs the sweeper, it reads its own balance and transfers all of it to the attacker’s hardcoded address." },
+    why: "The attacker’s relayer sends them in a single transaction and pays the fee itself. The owner is never asked to confirm anything, because they aren’t the one sending it." },
+  { key: "verify", title: "3 · Hijack the wallet",
+    now: "The wallet starts running the attacker’s code.",
+    why: "Only the one permission matching the wallet’s current nonce takes effect; the other 49 are spares. The wallet’s code flips from empty to 0xef0100 + the attacker’s contract. Same address, same balance — but it now obeys the attacker." },
+  { key: "sweep", title: "4 · Drain it",
+    now: "One call moves the whole balance out.",
+    why: "The relayer pokes the wallet. Because it now runs the attacker’s contract, it reads its own balance and sends all of it to the attacker’s address in a single call." },
 ];
 
 /** The proof for each attack step, read from the run's own events. */

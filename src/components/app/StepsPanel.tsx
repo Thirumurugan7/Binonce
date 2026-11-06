@@ -10,8 +10,8 @@ import type { TraceStatus, Step } from "./chain-bits";
  * The side of the story the portfolio can't show: what the attacker (or the defense) is doing.
  * Follows the live step during a run; any step can be opened to read it.
  */
-export function StepsPanel<K extends string>({ title, sub, steps, statuses, evidence, tone = "ember", live, footer }: {
-  title: string; sub: string; steps: Step<K>[]; statuses: Record<K, TraceStatus>;
+export function StepsPanel<K extends string>({ title, sub, intro, steps, statuses, evidence, tone = "ember", live, footer }: {
+  title: string; sub: string; intro?: ReactNode; steps: Step<K>[]; statuses: Record<K, TraceStatus>;
   evidence: (key: K, status: TraceStatus) => ReactNode;
   tone?: "ember" | "seal"; live?: boolean; footer?: ReactNode;
 }) {
@@ -33,6 +33,8 @@ export function StepsPanel<K extends string>({ title, sub, steps, statuses, evid
           <div className="text-[12px] text-bn-fog-2 truncate">{sub}</div>
         </div>
       </div>
+
+      {intro && <p className="m-0 px-5 py-3.5 border-b border-bn-night-line text-[13px] leading-relaxed text-bn-fog-2">{intro}</p>}
 
       <ol className="m-0 p-0 list-none">
         {steps.map((s, i) => {
