@@ -5,7 +5,7 @@ import { Wallet, ShieldCheck, Ban, Check, Loader2, ArrowUpRight, Skull, RotateCc
 import { useOperatorWallet } from "@/app/defense/wallet-context";
 import { shortAddr } from "@/lib/format";
 
-const OPERATOR_ADDRESS = "0x8C46D5777355A25B519dFad3aa857b6DBCd429c0";
+const OPERATOR_ADDRESS = "0x3ae7F2767111D8700F82122A373792B99d605749";
 const EXPLORER = "https://explorer.testnet.whitechain.io";
 const uintFields = ["maxSteps", "nativeValue", "deadline", "chainId", "nonce"];
 
@@ -96,7 +96,7 @@ export function DefenseSigner() {
         <div className="grid gap-4 sm:grid-cols-[1fr_minmax(0,320px)] items-start">
           <div className="flex flex-col gap-3">
             <button onClick={signPayout} disabled={busy !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-chip bg-bn-ink text-bn-surface h-11 px-5 text-[14px] font-semibold disabled:opacity-50">
+              className="inline-flex items-center justify-center gap-2 rounded-chip bg-bn-ink text-bn-paper h-11 px-5 text-[14px] font-semibold disabled:opacity-50">
               {busy === "sign" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
               Sign &amp; send a 1,000 USDC payout
             </button>

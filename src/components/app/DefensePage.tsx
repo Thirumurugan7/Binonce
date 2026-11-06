@@ -8,6 +8,7 @@ import { Walkthrough } from "./Walkthrough";
 import { Terminal } from "./Terminal";
 import { MoneyPanel, type Note } from "./MoneyPanel";
 import { DefenseSigner } from "./DefenseSigner";
+import { DemoConsole } from "@/components/demo/DemoConsole";
 import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState } from "./DefenseTrace";
 import type { DefenseEvent } from "@/lib/defense-types";
 import { num, shortAddr } from "@/lib/format";
@@ -235,6 +236,19 @@ export function DefensePage() {
           <DefenseSigner />
         </div>
       </main>
+
+      {/* The full 2-of-2 multisig treasury console (the /demo page), embedded below. */}
+      <section className="border-t border-bn-line mt-8">
+        <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pt-10 pb-2">
+          <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] text-bn-ink m-0">Multisig treasury console</h2>
+          <p className="text-[15px] leading-relaxed text-bn-ink-2 mt-2 mb-0 max-w-[46rem]">
+            The same vault as a full 2-of-2 treasury: a relayer proposes a transfer, two wallets sign it on-chain,
+            and a 1,000,000 USDC spending-cap policy blocks anything over the limit.
+          </p>
+        </div>
+        <DemoConsole embedded />
+      </section>
+
       <Toaster />
     </>
   );

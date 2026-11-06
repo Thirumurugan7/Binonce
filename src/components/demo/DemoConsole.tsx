@@ -12,7 +12,7 @@ const PRESETS = [
   { label: "1,500,000", amount: 1500000, tone: "hot" as const, note: "over the 1M cap" },
 ];
 
-export function DemoConsole() {
+export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
   const { ready, authenticated, login, logout } = usePrivy();
   const { address, isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -90,9 +90,9 @@ export function DemoConsole() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-soft text-ink">
+    <div className={`${embedded ? "" : "min-h-screen"} bg-surface-soft text-ink`}>
       {/* header */}
-      <header className="sticky top-0 z-30 h-16 bg-surface/95 backdrop-blur border-b border-line flex items-center gap-3 px-5 sm:px-6">
+      <header className={`${embedded ? "" : "sticky top-0 z-30"} h-16 bg-surface/95 backdrop-blur border-b border-line flex items-center gap-3 px-5 sm:px-6`}>
         <ShieldCheck className="h-5 w-5 text-up" />
         <div className="leading-tight">
           <div className="font-bold tracking-tight">Chainwall · 2-of-2 Treasury</div>
@@ -141,7 +141,7 @@ export function DemoConsole() {
             </div>
             <button onClick={propose} disabled={!connected || !!opId || proposing || wrongChain}
               className="inline-flex items-center gap-2 rounded-chip bg-up text-night px-4 h-10 text-sm font-bold disabled:opacity-40">
-              {proposing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Propose {amount.toLocaleString()} USDC
+              {proposing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Propose {amount.toLocaleString("en-US")} USDC
             </button>
             {opId && <p className="mt-3 text-xs font-mono text-ink-3">operation #{opId} created · awaiting 2 signatures</p>}
           </Section>
@@ -155,7 +155,7 @@ export function DemoConsole() {
                   {pending.map((p) => (
                     <button key={p.operationId} onClick={() => { setOpId(p.operationId); setProposedAmount(p.amount); setResult(null); }}
                       className={`rounded-chip px-3 h-8 text-xs font-mono border transition-colors ${opId === p.operationId ? "border-up text-up bg-up/10" : "border-line text-ink-2 hover:text-ink"}`}>
-                      #{p.operationId} · {p.amount.toLocaleString()} USDC
+                      #{p.operationId} · {p.amount.toLocaleString("en-US")} USDC
                     </button>
                   ))}
                 </div>
@@ -197,7 +197,7 @@ export function DemoConsole() {
             </button>
             {result?.ok && (
               <div className="mt-3 rounded-card border border-up/40 bg-up/5 p-3 text-sm">
-                <div className="flex items-center gap-2 text-up font-semibold"><Check className="h-4 w-4" />Executed — {proposedAmount?.toLocaleString()} USDC moved from the vault</div>
+                <div className="flex items-center gap-2 text-up font-semibold"><Check className="h-4 w-4" />Executed — {proposedAmount?.toLocaleString("en-US")} USDC moved from the vault</div>
                 {result.txHash && <a className="mt-1 inline-flex items-center gap-1 text-xs text-ink-3 hover:text-ink font-mono" href={`${DEMO.explorer}/tx/${result.txHash}`} target="_blank" rel="noreferrer">{short(result.txHash)} <ExternalLink className="h-3 w-3" /></a>}
               </div>
             )}
