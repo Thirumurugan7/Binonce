@@ -2,55 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ──────────────────────────────────────────────
-   Surfaces/text are RGB channel triplets so Tailwind's `/alpha`
-   modifiers work (e.g. bg-surface/95). `.dark` on <html> flips them.
-   Brand (yellow) and semantic (up/down) stay constant across themes. */
+/* ── Binonce tokens ────────────────────────────────────────────
+   RGB channel triplets so Tailwind `/alpha` modifiers work. `.dark` on <html>
+   flips the paper world; the night world stays dark in both themes because
+   "what the chain records" should always read as underneath. See DESIGN_SYSTEM.md. */
 :root {
-  --surface: 255 255 255;
-  --surface-soft: 247 248 250;
-  --surface-fill: 240 242 245;
-  --ink: 18 22 28;
-  --ink-2: 59 65 73;
-  --ink-3: 107 118 132;
-  --ink-4: 146 154 165;
-  --line: 232 234 237;
-  --scroll-thumb: 203 208 214;
-  --scroll-thumb-hover: 182 189 197;
+  /* paper world (what people see) */
+  --bn-paper: 243 239 230;      /* #F3EFE6 page */
+  --bn-paper-2: 236 231 219;    /* #ECE7DB bands, fills */
+  --bn-card: 255 255 255;       /* #FFFFFF raised cards */
+  --bn-ink: 21 20 15;           /* #15140F headings, primary */
+  --bn-ink-2: 58 55 48;         /* #3A3730 body */
+  --bn-muted: 104 99 88;        /* #686358 metadata — 5.2:1 */
+  --bn-line: 216 209 194;       /* #D8D1C2 hairlines */
+  /* night world (what the chain records) — dark in both themes */
+  --bn-night: 14 15 17;         /* #0E0F11 */
+  --bn-night-2: 22 24 27;       /* #16181B */
+  --bn-night-line: 40 43 48;    /* #282B30 */
+  --bn-fog: 232 228 218;        /* #E8E4DA text on night */
+  --bn-fog-2: 156 152 141;      /* #9C988D muted on night — 6.7:1 */
+  /* signal */
+  --bn-ember: 229 67 31;        /* #E5431F fills + large text */
+  --bn-ember-ink: 178 49 14;    /* #B2310E small ember text — 5.5:1 */
+  --bn-ember-glow: 255 107 69;  /* #FF6B45 ember on night */
+  --bn-seal: 31 122 89;         /* #1F7A59 held / live — 4.6:1 */
+  --bn-seal-glow: 94 201 156;   /* #5EC99C */
+  --bn-amber: 138 87 11;        /* #8A570B warning — 5.3:1 */
+  --bn-amber-glow: 233 180 76;  /* #E9B44C */
+  --bn-info: 44 84 196;         /* #2C54C4 */
+  --bn-shadow: 21 20 15;
+  --scroll-thumb: 203 196 182;
   color-scheme: light;
 }
 
+/* Dark theme: paper turns to soot, night panels go one step deeper so the chain world still reads as "underneath". */
 .dark {
-  --surface: 20 25 31;
-  --surface-soft: 11 14 17;
-  --surface-fill: 31 38 47;
-  --ink: 234 236 239;
-  --ink-2: 199 203 209;
-  --ink-3: 139 152 168;
-  --ink-4: 106 117 130;
-  --line: 32 39 49;
-  --scroll-thumb: 45 55 67;
-  --scroll-thumb-hover: 58 70 84;
+  --bn-paper: 17 17 16;         /* #111110 */
+  --bn-paper-2: 25 25 23;       /* #191917 */
+  --bn-card: 29 29 27;          /* #1D1D1B */
+  --bn-ink: 238 234 225;        /* #EEEAE1 — 16:1 */
+  --bn-ink-2: 201 196 185;      /* #C9C4B9 */
+  --bn-muted: 154 149 138;      /* #9A958A — 6.6:1 */
+  --bn-line: 50 49 45;          /* #32312D */
+  --bn-night: 8 9 10;           /* #08090A */
+  --bn-night-2: 16 17 19;       /* #101113 */
+  --bn-night-line: 38 40 44;    /* #26282C */
+  --bn-ember-ink: 255 125 92;   /* #FF7D5C ember text on soot — 6.9:1 */
+  --bn-seal: 88 196 150;        /* #58C496 */
+  --bn-amber: 228 172 70;       /* #E4AC46 */
+  --bn-info: 128 158 255;       /* #809EFF */
+  --bn-shadow: 0 0 0;
+  --scroll-thumb: 64 62 57;
   color-scheme: dark;
 }
 
+
 html, body { padding: 0; margin: 0; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
-  background: rgb(var(--surface-soft));
-  color: rgb(var(--ink));
+  background: rgb(var(--bn-paper));
+  color: rgb(var(--bn-ink));
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: background-color .25s ease, color .25s ease;
 }
 
-::selection { background: theme(colors.yellow.DEFAULT); color: #1E2026; }
+::selection { background: rgb(var(--bn-ember)); color: #fff; }
 
 /* theme-aware scrollbars */
 .scroll-nice::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-nice::-webkit-scrollbar-thumb { background: rgb(var(--scroll-thumb)); border-radius: 8px; }
-.scroll-nice::-webkit-scrollbar-thumb:hover { background: rgb(var(--scroll-thumb-hover)); }
+
 .scroll-nice::-webkit-scrollbar-track { background: transparent; }
+
+/* Brand focus ring — visible on paper and night. */
+.bn-focus:focus-visible, .bn-scope :focus-visible {
+  outline: 2px solid rgb(var(--bn-ember));
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Fine paper grain + ruled-grid for the night panels (pure CSS, no assets). */
+.bn-grid-night {
+  background-image:
+    linear-gradient(rgb(var(--bn-night-line) / .55) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--bn-night-line) / .55) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
 
 /* number flow for the balance */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
@@ -58,3 +99,40 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* ── Mark animation ───────────────────────────────────────────
+   Dots sign in order, then the first nonce lands as the ember square. */
+.bn-mark .bn-mark-dot { opacity: .42; }
+.bn-mark .bn-mark-land { transform-box: fill-box; transform-origin: center; }
+.bn-mark--once .bn-mark-dot { animation: bn-dot .5s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--i) * 70ms); }
+.bn-mark--once .bn-mark-land { animation: bn-land .55s cubic-bezier(.34,1.56,.64,1) .72s both; }
+.bn-mark--loop .bn-mark-dot { animation: bn-dot-loop 1.8s ease-in-out infinite; animation-delay: calc(var(--i) * 90ms); }
+.bn-mark--loop .bn-mark-land { animation: bn-land-loop 1.8s ease-in-out infinite; }
+@keyframes bn-dot { from { opacity: 0; transform: scale(.2); } to { opacity: .42; transform: none; } }
+@keyframes bn-land { from { opacity: 0; transform: scale(.3) rotate(-45deg); } to { opacity: 1; transform: none; } }
+@keyframes bn-dot-loop { 0%, 100% { opacity: .15; } 35%, 60% { opacity: .55; } }
+@keyframes bn-land-loop { 0%, 30% { opacity: .25; transform: scale(.7); } 50%, 85% { opacity: 1; transform: none; } 100% { opacity: .25; transform: scale(.7); } }
+.bn-mark-dot { transform-box: fill-box; transform-origin: center; }
+
+/* ── Intro loader ──────────────────────────────────────────────
+   Pure CSS so it can never trap the page: it fades itself out. A pre-paint script
+   adds html[data-intro="skip"] after the first visit in a session. */
+.bn-intro { animation: bn-intro-out .55s cubic-bezier(.7,0,.3,1) 1.75s forwards; }
+.bn-intro-word { animation: bn-intro-word .6s cubic-bezier(.16,1,.3,1) .95s both; }
+.bn-intro-cap { animation: bn-intro-word .6s cubic-bezier(.16,1,.3,1) 1.1s both; }
+html[data-intro="skip"] .bn-intro { display: none; }
+@keyframes bn-intro-out { to { opacity: 0; transform: translateY(-2%); visibility: hidden; pointer-events: none; } }
+@keyframes bn-intro-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bn-intro { display: none; } }
+
+/* ── Range input (brand) ─────────────────────────────────────── */
+.bn-range { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; cursor: pointer; }
+.bn-range::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: rgb(var(--bn-line)); }
+.bn-range::-moz-range-track { height: 3px; border-radius: 3px; background: rgb(var(--bn-line)); }
+.bn-range::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; margin-top: -8.5px; border-radius: 999px; background: rgb(var(--bn-ink)); border: 3px solid rgb(var(--bn-card)); box-shadow: 0 0 0 1px rgb(var(--bn-ink) / .2); }
+.bn-range::-moz-range-thumb { height: 14px; width: 14px; border-radius: 999px; background: rgb(var(--bn-ink)); border: 3px solid rgb(var(--bn-card)); }
+.bn-range:focus-visible { outline: 2px solid rgb(var(--bn-ember)); outline-offset: 2px; border-radius: 6px; }
+.bn-range--night::-webkit-slider-runnable-track { background: rgb(var(--bn-night-line)); }
+.bn-range--night::-moz-range-track { background: rgb(var(--bn-night-line)); }
+.bn-range--night::-webkit-slider-thumb { background: rgb(var(--bn-fog)); border-color: rgb(var(--bn-night-2)); box-shadow: none; }
+.bn-range--night::-moz-range-thumb { background: rgb(var(--bn-fog)); border-color: rgb(var(--bn-night-2)); }
