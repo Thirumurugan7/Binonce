@@ -1,4 +1,5 @@
-import { Search, Bell, UserRound, Download, Globe } from "lucide-react";
+import { Search, Bell, UserRound, Download } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const LINKS = ["Buy Crypto", "Markets", "Trade", "Futures", "Earn", "Square", "More"];
 
@@ -33,8 +34,8 @@ export function Nav() {
       <div className="ml-auto flex items-center gap-1 text-ink-3">
         <NavIcon><Search className="h-[18px] w-[18px]" /></NavIcon>
         <NavIcon><Download className="h-[18px] w-[18px]" /></NavIcon>
-        <NavIcon><Globe className="h-[18px] w-[18px]" /></NavIcon>
         <NavIcon><Bell className="h-[18px] w-[18px]" /></NavIcon>
+        <ThemeToggle />
         <div className="ml-1 h-8 w-8 rounded-full bg-surface-fill grid place-items-center text-ink-2 hover:bg-line transition-colors cursor-pointer">
           <UserRound className="h-[18px] w-[18px]" />
         </div>

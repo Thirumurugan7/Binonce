@@ -50,7 +50,7 @@ export function BalanceCard({ usdt, total, hidden, draining, onToggleEye, pnl, a
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2.5 mt-4 px-3.5 py-3 bg-[#FEF0F0] border border-[#FBD4D8] rounded-data text-[#C7303F] font-medium text-[13px]">
+            <div className="flex items-center gap-2.5 mt-4 px-3.5 py-3 bg-down/10 border border-down/30 rounded-data text-down font-medium text-[13px]">
               <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.6 }}>
                 <ShieldAlert className="h-[18px] w-[18px] flex-none" />
               </motion.span>
@@ -68,7 +68,7 @@ function ActionButton({ children, icon, primary }: { children: React.ReactNode; 
     <motion.button
       whileTap={{ scale: 0.96 }}
       className={`inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] transition-colors ${
-        primary ? "bg-yellow text-ink hover:bg-yellow-hi" : "bg-surface-fill text-ink hover:bg-[#ECECEF]"
+        primary ? "bg-yellow text-[#1E2026] hover:bg-yellow-hi" : "bg-surface-fill text-ink hover:bg-line"
       }`}
     >
       {icon}

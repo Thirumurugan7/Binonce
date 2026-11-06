@@ -2,22 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ──────────────────────────────────────────────
+   Surfaces/text are RGB channel triplets so Tailwind's `/alpha`
+   modifiers work (e.g. bg-surface/95). `.dark` on <html> flips them.
+   Brand (yellow) and semantic (up/down) stay constant across themes. */
+:root {
+  --surface: 255 255 255;
+  --surface-soft: 247 248 250;
+  --surface-fill: 240 242 245;
+  --ink: 18 22 28;
+  --ink-2: 59 65 73;
+  --ink-3: 107 118 132;
+  --ink-4: 146 154 165;
+  --line: 232 234 237;
+  --scroll-thumb: 203 208 214;
+  --scroll-thumb-hover: 182 189 197;
+  color-scheme: light;
+}
+
+.dark {
+  --surface: 20 25 31;
+  --surface-soft: 11 14 17;
+  --surface-fill: 31 38 47;
+  --ink: 234 236 239;
+  --ink-2: 199 203 209;
+  --ink-3: 139 152 168;
+  --ink-4: 106 117 130;
+  --line: 32 39 49;
+  --scroll-thumb: 45 55 67;
+  --scroll-thumb-hover: 58 70 84;
+  color-scheme: dark;
+}
+
 html, body { padding: 0; margin: 0; }
 body {
-  background: theme(colors.surface.soft);
-  color: theme(colors.ink.DEFAULT);
+  background: rgb(var(--surface-soft));
+  color: rgb(var(--ink));
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background-color .25s ease, color .25s ease;
 }
 
-::selection { background: theme(colors.yellow.DEFAULT); color: theme(colors.ink.DEFAULT); }
+::selection { background: theme(colors.yellow.DEFAULT); color: #1E2026; }
 
-/* refined scrollbars inside dark panels */
-.scroll-dark::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-dark::-webkit-scrollbar-thumb { background: #243041; border-radius: 8px; }
-.scroll-dark::-webkit-scrollbar-thumb:hover { background: #2e3c4f; }
-.scroll-dark::-webkit-scrollbar-track { background: transparent; }
+/* theme-aware scrollbars */
+.scroll-nice::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-nice::-webkit-scrollbar-thumb { background: rgb(var(--scroll-thumb)); border-radius: 8px; }
+.scroll-nice::-webkit-scrollbar-thumb:hover { background: rgb(var(--scroll-thumb-hover)); }
+.scroll-nice::-webkit-scrollbar-track { background: transparent; }
 
 /* number flow for the balance */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
