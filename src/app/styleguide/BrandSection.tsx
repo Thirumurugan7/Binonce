@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
-import { Button, Designator, Eyebrow, Mark, Tag, Wordmark } from "@/components/brand";
+import { Button, Designator, Eyebrow, Hl, Mark, Tag, Wordmark } from "@/components/brand";
+import { ToastDemo } from "./ToastDemo";
 
 // Light-theme hex values; the swatches themselves use the live tokens, so they follow the theme toggle.
 const PAPER = [
@@ -103,6 +104,14 @@ export function BrandSection() {
             <Tag tone="live" onNight>Live</Tag><Tag tone="progress" onNight>In progress</Tag><Tag tone="planned" onNight>Planned</Tag>
             <Tag tone="breach" onNight pulse>Breach</Tag>
           </div>
+        </Block>
+
+        <Block title="Toasts">
+          <ToastDemo />
+        </Block>
+
+        <Block title="Highlight">
+          <p className="text-body-l text-bn-ink-2 m-0 max-w-[62ch]">One key phrase per section gets <Hl>a marker stroke that sweeps in on scroll</Hl>, in the same colours as text selection.</p>
         </Block>
 
         <Block title="Mark">

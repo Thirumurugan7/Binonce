@@ -30,7 +30,7 @@ precise mono, and one alarming colour. It looks like evidence, which is what a r
 - **Night** is what the chain records: signatures, the delegation marker, the sweep.
 - **Ember** is the breach, the one thing that changed.
 
-The landing page alternates the two. The app pages follow one layout: a plain header with the run button; a step tracker whose narrator says in one sentence what is happening now and why, with the on-chain evidence drawn dark underneath; the live log, always visible; and a side panel showing where the money is (victim or vault above, attacker below) plus the notifications the owner would see. Every step can be opened before a run, so the page teaches even when the chain isn't set up.
+The landing page alternates the two. The attack page is a picture of the attack: three accounts (attacker with the leaked key → hot wallet → attacker's wallet) with the two real transactions drawn as arrows between them, transaction links on the arrows, balances moving, and one caption saying what is happening. Under it sit the live log and a run summary for judges (owner approvals 0, gas paid by owner 0, transactions, time). Every stage of a run also raises a toast that goes from loading to done, with its transaction link. The defense page uses the step walkthrough until its live run is reconnected.
 
 **Mark.** Nine authorizations signed at consecutive nonces: eight spent spares (dots) and one that lands (the
 ember square, top-left). In the replay the matching nonce is always the first. It animates once in the
@@ -111,8 +111,10 @@ Brand primitives are in `src/components/brand/`, and the landing sections are in
 | `IntroLoader`, `ThemeToggle` | First-visit intro · light/dark switch |
 | `Designator` | Renders `0xef0100‖delegate` with the marker highlighted |
 | `CopyButton` | Clipboard copy with a polite live-region confirmation |
+| `Hl` | Marker highlight for one key phrase per section; sweeps in on scroll, same colours as text selection (`--bn-hl`) |
+| `toast` / `Toaster` | `src/components/toast`: `toast.loading(...)` then `toast.success/error(..., id)` turns a pending toast into its result; auto-dismiss pauses on hover |
 
-App components live in `src/components/app/`: `AppNav`, `Walkthrough` (step tracker + plain-language narrator + on-chain evidence), `Terminal` (the live log, always visible), `MoneyPanel` (victim/vault vs attacker balances + notifications), `AttackTrace` / `DefenseTrace` (step copy and evidence), `ActivityPanel` (Arkiv record), `MintModal`, `SetupNotice`.
+App components live in `src/components/app/`: `AppNav`, `AttackStage` + `RunSummary` (attack flow diagram), `Walkthrough` (step tracker + plain-language narrator + on-chain evidence), `Terminal` (the live log, always visible), `MoneyPanel` (victim/vault vs attacker balances + notifications), `AttackTrace` / `DefenseTrace` (step copy and evidence), `ActivityPanel` (Arkiv record), `MintModal`, `SetupNotice`.
 
 Conventions: no raw hex in components; focus is a 2px ember outline (`.bn-focus`, or any focusable
 inside `.bn-scope`); touch targets are at least 40px; every illustration is labelled as one and never
@@ -120,7 +122,7 @@ shows invented addresses or hashes.
 
 ## Landing page
 
-1. **Hero**: the thesis plus a replay illustration you can pause or jump to any stage.
+1. **Hero**: the thesis next to a metrics board: the incident's figures counting up (sourced), and a live count of contracts in the Arkiv Blacklist.
 2. **Incident timeline**: pinned while you scroll; each quarter of the scroll reveals the next of four dated moments (click or arrow keys jump), with sources.
 3. **How the drain works**: four steps with a sticky visual, then two hands-on explainers: *Why sign 50?*
    (drag the wallet's nonce and see which authorization lands, or none) and *Read the 23 bytes* (hover the
