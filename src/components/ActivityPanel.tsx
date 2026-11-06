@@ -41,7 +41,7 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
       ].sort((a, b) => b.ts - a.ts)
     : [];
 
-  const arkivLink = () => (data ? data.explorer : "#");
+  const arkivLink = (key: string) => (data ? `${data.explorer}/entity/${key}` : "#");
 
   return (
     <div className="bg-surface border border-line rounded-card mt-6 overflow-hidden">
@@ -79,7 +79,7 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
                       <div className="text-[13px] font-medium">Wallet drained · {money(Number(f.d.drained))} tUSD</div>
                       <div className="text-[12px] text-ink-4 font-mono truncate">{shortAddr(f.d.victim)} → {shortAddr(f.d.attacker)}</div>
                     </div>
-                    <Meta ts={f.ts} tx={f.d.sweepTx} txExplorer={txExplorer} arkivLink={arkivLink()} amountClass="text-down" />
+                    <Meta ts={f.ts} tx={f.d.sweepTx} txExplorer={txExplorer} arkivLink={arkivLink(f.key)} amountClass="text-down" />
                   </>
                 ) : (
                   <>
@@ -88,7 +88,7 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
                       <div className="text-[13px] font-medium">Minted {money(Number(f.m.amount))} tUSD</div>
                       <div className="text-[12px] text-ink-4 font-mono truncate">to {shortAddr(f.m.to)}</div>
                     </div>
-                    <Meta ts={f.ts} tx={f.m.tx} txExplorer={txExplorer} arkivLink={arkivLink()} />
+                    <Meta ts={f.ts} tx={f.m.tx} txExplorer={txExplorer} arkivLink={arkivLink(f.key)} />
                   </>
                 )}
               </motion.li>
@@ -101,14 +101,25 @@ export function ActivityPanel({ version, txExplorer }: { version: number; txExpl
         <ul className="divide-y divide-line">
           {data.delegates.map((g) => (
             <li key={g.key} className="flex items-center gap-3.5 px-5 py-3.5">
-              <Icon danger={g.label === "confirmed-thief"}><ShieldOff className="h-[18px] w-[18px]" /></Icon>
+              <Icon danger={g.label === "confirmed-thief" || g.label === "likely-thief"}><ShieldOff className="h-[18px] w-[18px]" /></Icon>
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-mono truncate">{g.address}</div>
+                <a
+                  href={`${g.chain === "ethereum" ? "https://etherscan.io" : "https://sepolia.etherscan.io"}/address/${g.address}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-[13px] font-mono truncate inline-flex items-center gap-1 hover:text-ink hover:underline"
+                >
+                  {g.address} <ArrowUpRight className="h-3 w-3 text-ink-4 flex-none" />
+                </a>
                 <div className="text-[12px] text-ink-4 truncate">{g.labelSource || "—"}</div>
               </div>
-              <div className="text-right flex flex-col items-end gap-0.5">
+              <div className="text-right flex flex-col items-end gap-1">
                 <Label label={g.label} />
-                <span className="text-[11px] text-ink-4">{g.delegatorCount} delegation{g.delegatorCount === "1" ? "" : "s"}</span>
+                <div className="flex items-center gap-2.5 text-[11px] text-ink-4">
+                  <span>{g.delegatorCount} delegation{g.delegatorCount === "1" ? "" : "s"}</span>
+                  <a href={arkivLink(g.key)} target="_blank" rel="noopener noreferrer" className="font-mono inline-flex items-center gap-0.5 hover:text-ink">
+                    arkiv <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
             </li>
           ))}
