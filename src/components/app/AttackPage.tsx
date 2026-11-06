@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, RotateCcw } from "lucide-react";
+import { Play, RotateCcw, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
 import { Terminal } from "./Terminal";
@@ -132,6 +132,11 @@ export function AttackPage() {
       case "before":
         setTusd(num(e.victimTUSD ?? "0"));
         addLine(t, `${e.msg}: ${e.victimTUSD} tUSD`);
+        break;
+      case "empty":
+        addLine(t, e.msg ?? "", "hot");
+        toast.warning({ title: "Nothing to drain yet", body: "The wallet is empty. Press Deposit to add test tUSD, then launch again." }, "empty");
+        setRunning(false);
         break;
       case "sign":
         activate("sign");
@@ -275,6 +280,7 @@ export function AttackPage() {
   const status = configured === false ? "Chain not set up" : running ? "Attack running…" : finished ? "Attack finished" : "Ready";
   const taken = phase >= 3 || (phase === 0 && delegated);
   const balance = loaded || started ? tusd : null;
+  const empty = ready && !running && !started && balance === 0;
   const pnl = baseline != null && balance != null ? { delta: balance - baseline, pct: baseline ? ((balance - baseline) / baseline) * 100 : 0 } : null;
   const assets = [
     { sym: "tUSD", name: "Test USD", amt: balance, price: 1, priceNote: "test token" },
@@ -310,11 +316,13 @@ export function AttackPage() {
           <div className="flex flex-col items-start sm:items-end gap-2">
             <div className="flex flex-wrap gap-2.5">
               {started && !running && <Button variant="secondary" onClick={clear} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
-              <Button variant="danger" size="lg" onClick={run} disabled={!ready || running} icon={<Play className="h-4 w-4 fill-current" />}>
-                {running ? "Running…" : finished ? "Run again" : "Launch attack"}
-              </Button>
+              {empty
+                ? <Button variant="danger" size="lg" onClick={() => setMintOpen(true)} disabled={!ready} icon={<ArrowDownToLine className="h-4 w-4" />}>Deposit to start</Button>
+                : <Button variant="danger" size="lg" onClick={run} disabled={!ready || running} icon={<Play className="h-4 w-4 fill-current" />}>
+                    {running ? "Running…" : finished ? "Run again" : "Launch attack"}
+                  </Button>}
             </div>
-            <span className="text-[12.5px] text-bn-muted">{status} · test tokens only</span>
+            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty — deposit test tUSD first" : `${status} · test tokens only`}</span>
           </div>
         </div>
 
@@ -341,7 +349,8 @@ export function AttackPage() {
           {/* The attacker's side: invisible to the portfolio, shown here. */}
           <aside className="flex flex-col gap-5 xl:sticky xl:top-20">
             <StepsPanel
-              title="What the attacker is doing" sub="EIP-7702, step by step" tone="ember" live={running}
+              title="How the drain works" sub="four moves, no owner approval" tone="ember" live={running}
+              intro={<>The attacker never asks the owner for anything. Open any move to see what it does and the real proof behind it.</>}
               steps={ATTACK_STEPS} statuses={trace.steps}
               evidence={(k, st) => <AttackEvidence k={k} st={st} state={trace} explorer={explorer} attacker={attacker} moved={stolen} />}
             />
@@ -349,8 +358,11 @@ export function AttackPage() {
           </aside>
         </div>
 
-        <section aria-labelledby="log" className="mt-8">
-          <h2 id="log" className="sr-only">Live log</h2>
+        <section aria-labelledby="log" className="mt-12">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-1 mb-4">
+            <h2 id="log" className="font-serif font-normal text-[28px] text-bn-ink m-0">Live transaction log</h2>
+            <p className="text-[15px] text-bn-ink-2 m-0">Every line is a real step on {chain}, with its transaction hash. This is the proof behind the animation above.</p>
+          </div>
           <Terminal
             lines={trace.lines} running={running} explorer={explorer}
             command={`binonce attack --chain ${chain.toLowerCase().replace(/\s+/g, "-")}`}
@@ -370,8 +382,10 @@ export function AttackPage() {
 
       {/* Phones: keep the main action in reach. */}
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-bn-line bg-bn-paper/90 backdrop-blur-md px-4 py-3 flex items-center gap-3">
-        <span className="text-[13.5px] text-bn-ink">{status}</span>
-        <Button variant="danger" className="ml-auto" onClick={run} disabled={!ready || running}>{running ? "Running…" : "Launch attack"}</Button>
+        <span className="text-[13.5px] text-bn-ink">{empty ? "Deposit to start" : status}</span>
+        {empty
+          ? <Button variant="danger" className="ml-auto" onClick={() => setMintOpen(true)} disabled={!ready}>Deposit</Button>
+          : <Button variant="danger" className="ml-auto" onClick={run} disabled={!ready || running}>{running ? "Running…" : "Launch attack"}</Button>}
       </div>
 
       <Toaster />
