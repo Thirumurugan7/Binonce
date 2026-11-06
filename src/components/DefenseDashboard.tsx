@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Nav } from "./Nav";
 import { BalanceCard } from "./BalanceCard";
 import { AssetsTable, type Asset } from "./AssetsTable";
@@ -40,19 +40,10 @@ export function DefenseDashboard() {
   const [running, setRunning] = useState(false);
   const [live, setLive] = useState(false);
   const [dbState, setDbState] = useState("Ready");
-  const [disabled, setDisabled] = useState(true);
-  const [chain, setChain] = useState("Local fork");
+  const [disabled] = useState(false);
+  const [chain] = useState("Local fork");
 
-  const esRef = useRef<EventSource | null>(null);
   const toastId = useRef(0);
-
-  useEffect(() => {
-    fetch("/api/defense-config")
-      .then((r) => r.json())
-      .then((c) => { setDisabled(!c.configured); setChain(c.chain ?? "Local fork"); if (!c.configured) setDbState("Demo chain offline"); })
-      .catch(() => setDisabled(true));
-    return () => esRef.current?.close();
-  }, []);
 
   const usdc = assets.find((a) => a.sym === "USDC")!.amt;
   const total = assets.reduce((s, a) => s + a.amt * a.price, 0);
@@ -87,7 +78,6 @@ export function DefenseDashboard() {
   const finish = useCallback(() => {
     setRunning(false);
     setLive(false);
-    esRef.current?.close();
   }, []);
 
   const handle = useCallback((e: DefenseEvent) => {
@@ -221,18 +211,18 @@ export function DefenseDashboard() {
     setDbState("Ready");
   }, []);
 
+  // Integration seam. The Chainwall SSE backend was removed — the defense is being
+  // rebuilt from scratch. A new integration drives the walkthrough by calling
+  // defense.current.handle(event) per step and defense.current.finish() when done.
+  const defense = useRef({ handle, finish });
+  defense.current = { handle, finish };
+
   const run = useCallback(() => {
-    if (running) return;
     reset();
-    setRunning(true);
-    setLive(true);
     setDrawerOpen(true);
-    setDbState("Running on-chain");
-    const es = new EventSource(`/api/defend`);
-    esRef.current = es;
-    es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch {} };
-    es.onerror = () => { es.close(); finish(); };
-  }, [running, reset, handle, finish]);
+    setDbState("Awaiting defense integration");
+    // TODO: wire the new defense integration here.
+  }, [reset]);
 
   return (
     <>

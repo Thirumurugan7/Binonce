@@ -34,5 +34,7 @@ export const chainLabel = () => {
   const id = Number(process.env.CHAIN_ID || 31337);
   if (id === 11155111) return "Sepolia";
   if (id === 42161) return "Arbitrum One (local fork)";
+  if (id === 1874) return "Whitechain Testnet";
+  if (id === 1875) return "Whitechain";
   return "Local anvil";
 };
