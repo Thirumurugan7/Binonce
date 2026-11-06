@@ -104,7 +104,7 @@ export function AttackStage({ phase, preview, trace, victimBal, attackerBal, vic
           {/* victim */}
           <Node icon={<Wallet className="h-4 w-4" />} title="Hot wallet" sub={victim ? `the victim · ${shortAddr(victim)}` : "the victim"} active={phase === 3 || phase === 4} danger={taken}>
             <div className={`font-semibold tnum whitespace-nowrap text-[clamp(1.35rem,2.1vw,1.85rem)] leading-none tracking-[-0.02em] transition-colors duration-slow ${phase >= 4 ? "text-bn-ember" : "text-bn-ink"}`}>
-              {victimBal == null ? "…" : money(victimBal)} <span className="text-[14px] font-medium text-bn-muted tracking-normal">tUSD</span>
+              {victimBal == null ? "…" : money(victimBal)} <span className="text-[14px] font-medium text-bn-muted tracking-normal">USDC</span>
             </div>
             <div className={`mt-3 rounded-data px-3 py-2.5 text-[13px] transition-colors duration-slow ${taken ? "bg-bn-ember/[0.08] text-bn-ember-ink" : "bg-bn-paper-2 text-bn-ink-2"}`}>
               <span className="text-bn-muted">Code: </span>
@@ -116,13 +116,13 @@ export function AttackStage({ phase, preview, trace, victimBal, attackerBal, vic
 
           <Connector
             state={phase === 4 ? "flowing" : phase === 5 ? "done" : "idle"}
-            label={phase >= 4 ? `sweepToken() · ${money(attackerBal || 2_500_000)} tUSD` : "sweep"}
+            label={phase >= 4 ? `sweepToken() · ${money(attackerBal || 2_500_000)} USDC` : "sweep"}
             href={link(trace.sweepTx)} hash={trace.sweepTx} tone="ember" />
 
           {/* attacker wallet */}
           <Node icon={<Skull className="h-4 w-4" />} title="Attacker’s wallet" sub={attacker ? shortAddr(attacker) : "receives everything"} active={phase === 4} danger={phase === 5}>
             <div className={`font-semibold tnum whitespace-nowrap text-[clamp(1.35rem,2.1vw,1.85rem)] leading-none tracking-[-0.02em] ${attackerBal > 0 ? "text-bn-ember" : "text-bn-ink"}`}>
-              {money(attackerBal)} <span className="text-[14px] font-medium text-bn-muted tracking-normal">tUSD</span>
+              {money(attackerBal)} <span className="text-[14px] font-medium text-bn-muted tracking-normal">USDC</span>
             </div>
             <div className="mt-3 text-[13px] text-bn-muted">
               {phase === 5 ? "Received the whole balance in one call." : "Hardcoded into the sweeper contract."}
@@ -177,7 +177,7 @@ export function RunSummary({ phase, signed, txs, moved, elapsed }: { phase: Phas
     ["Gas paid by the owner", started ? "0 ETH" : "—", true],
     ["Authorizations signed", started ? `${signed} (1 used)` : "—"],
     ["Transactions sent", started ? String(txs) : "—"],
-    ["Moved to the attacker", phase === 5 ? `${money(moved)} tUSD` : "—", phase === 5],
+    ["Moved to the attacker", phase === 5 ? `${money(moved)} USDC` : "—", phase === 5],
     ["Time from Launch", elapsed != null ? `${(elapsed / 1000).toFixed(1)} s` : "—"],
   ];
   return (

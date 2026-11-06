@@ -7,16 +7,18 @@ import { AppNav } from "./AppNav";
 import { Walkthrough } from "./Walkthrough";
 import { Terminal } from "./Terminal";
 import { MoneyPanel, type Note } from "./MoneyPanel";
+import { DefenseSigner } from "./DefenseSigner";
 import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState } from "./DefenseTrace";
 import type { DefenseEvent } from "@/lib/defense-types";
 import { num, shortAddr } from "@/lib/format";
 import { Toaster, toast } from "@/components/toast";
 
 /**
- * The Chainwall SSE backend was removed while the defense is rebuilt. Set this to true once a new
- * integration calls `defense.current.handle(event)` per step and `defense.current.finish()` at the end.
+ * Live run streams from /api/defense/run (SSE), driving `defense.current.handle(event)` per step.
+ * The backend executes the real 7702-defense flow against a Whitechain fork (deployed Chainwall
+ * contracts, no Safe): a clean operator's signed payout executes; a 7702-delegated operator's is refused.
  */
-const INTEGRATED = false;
+const INTEGRATED = true;
 
 const emptyTrace: DefenseTraceState = {
   steps: { vault: "idle", payout: "idle", hijack: "idle", detect: "idle", refuse: "idle" },
@@ -30,15 +32,16 @@ export function DefensePage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [trace, setTrace] = useState<DefenseTraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
-  const chain = "Arbitrum One fork";
+  const chain = "Whitechain testnet 1874";
   const noteId = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const addNote = useCallback((kind: Note["kind"], title: string, sub: string) => {
     const id = ++noteId.current;
     setNotes((n) => [{ id, kind, title, sub, t: Date.now() }, ...n].slice(0, 4));
   }, []);
-  const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go") => {
-    setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind }] }));
+  const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go", tx?: string) => {
+    setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind, tx }] }));
   }, []);
   const setStep = useCallback((key: keyof DefenseTraceState["steps"], status: DefenseTraceState["steps"][keyof DefenseTraceState["steps"]]) => {
     setTrace((tr) => ({ ...tr, steps: { ...tr.steps, [key]: status } }));
@@ -51,53 +54,58 @@ export function DefensePage() {
       return { ...tr, steps };
     });
   }, []);
-  const finish = useCallback(() => setRunning(false), []);
+  const finish = useCallback(() => {
+    setRunning(false);
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
 
   const handle = useCallback((e: DefenseEvent) => {
     const t = e.t ?? Date.now();
     switch (e.step) {
       case "setup": setTrace((tr) => ({ ...tr, carol: e.carol ?? null })); addLine(t, e.msg ?? "", "go"); break;
-      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Creating the vault", body: "Registry, execution engine and vault, on-chain." }, "vault"); break;
+      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Reading the vault", body: "Live Chainwall tenant on Whitechain testnet 1874." }, "vault"); break;
       case "vault-deployed": setTrace((tr) => ({ ...tr, registry: e.registry ?? null, interact: e.interact ?? null })); addLine(t, e.msg ?? ""); break;
-      case "configure": addLine(t, e.msg ?? ""); break;
+      case "configure": addLine(t, e.msg ?? "", undefined, e.txHash); break;
       case "vault-ready": setTrace((tr) => ({ ...tr, vault: e.vault ?? null })); addLine(t, e.msg ?? ""); break;
       case "fund":
         setTrace((tr) => ({ ...tr, fundUSDC: e.vaultUSDC ?? null }));
         setStep("vault", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
-        toast.success({ title: "Vault funded", body: `${e.vaultUSDC ?? ""} USDC, guarded by a 2-of-2 policy.` }, "vault");
+        toast.success({ title: "Vault ready", body: `${e.vaultUSDC ?? ""} USDC, guarded by an operator policy.` }, "vault");
         break;
-      case "payout-propose": activate("payout"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Running a normal payout", body: "Alice proposes, Bob approves." }, "payout"); break;
-      case "payout-approve": case "payout-exec": addLine(t, e.msg ?? ""); break;
+      case "payout-propose": activate("payout"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Running a normal payout", body: "Operator signs, the relayer submits." }, "payout"); break;
+      case "payout-approve": addLine(t, e.msg ?? ""); break;
+      case "payout-exec": addLine(t, e.msg ?? "", undefined, e.txHash); break;
       case "payout-done":
         setTrace((tr) => ({ ...tr, recipientUSDC: e.recipientUSDC ?? null, vaultUSDC: e.vaultUSDC ?? null }));
         setStep("payout", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
-        addNote("ok", "Payment sent", `${e.recipientUSDC ?? ""} USDC · approved by 2 of 2`);
-        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC, approved by 2 of 2.` }, "payout");
+        addNote("ok", "Payment sent", `${e.recipientUSDC ?? ""} USDC · operator-signed`);
+        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC — signature and policy checked.` }, "payout");
         break;
       case "delegate": activate("hijack"); addLine(t, e.msg ?? "", "hot"); break;
       case "delegate-deploy": setTrace((tr) => ({ ...tr, delegate: e.delegate ?? null })); addLine(t, e.msg ?? "", "hot"); break;
       case "delegate-done":
         setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, carolCode: e.code ?? null, delegate: e.delegate ?? tr.delegate }));
-        setStep("hijack", "done"); addLine(t, e.msg ?? "", "hot");
-        addNote("warn", "Signer changed", "An EIP-7702 delegation was added to Carol’s account.");
-        toast.warning({ title: "A signer was taken over", body: "Carol’s account now runs the attacker’s contract." }, "hijack");
+        setStep("hijack", "done"); addLine(t, e.msg ?? "", "hot", e.txHash);
+        addNote("warn", "Signer changed", "An EIP-7702 delegation was added to the operator’s account.");
+        toast.warning({ title: "The operator was taken over", body: "Their account now runs the attacker’s sweeper." }, "hijack");
         break;
       case "detect":
         activate("detect"); setStep("detect", "done");
         setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, delegate: e.delegate ?? tr.delegate }));
         addLine(t, e.msg ?? "", "ok");
-        toast.info({ title: "Chainwall spotted the delegation", body: "Carol’s code starts with 0xef0100." }, "detect");
+        toast.info({ title: "Chainwall spots the delegation", body: "The operator’s code starts with 0xef0100." }, "detect");
         break;
       case "attack":
         activate("refuse");
         setTrace((tr) => ({ ...tr, attempted: e.amount ?? e.attempted ?? null }));
         addLine(t, e.msg ?? "", "hot");
-        addNote("warn", "Withdrawal attempt", `${e.amount ?? ""} USDC · via Carol’s account`);
-        toast.loading({ title: "Attacker is trying to withdraw", body: `${e.amount ?? ""} USDC through Carol’s account.` }, "refuse");
+        addNote("warn", "Withdrawal attempt", `${e.amount ?? ""} USDC · via the operator’s account`);
+        toast.loading({ title: "Attacker is trying to withdraw", body: `${e.amount ?? ""} USDC through the operator’s account.` }, "refuse");
         break;
       case "refuse":
         setTrace((tr) => ({ ...tr, reason: e.reason ?? null, vaultUSDC: e.vaultUSDC ?? tr.vaultUSDC, attackerUSDC: e.attackerUSDC ?? "0", attempted: e.attempted ?? tr.attempted }));
-        setStep("refuse", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
+        setStep("refuse", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok", e.txHash);
         addNote("ok", "Withdrawal blocked", "The vault refused a signer running someone else’s code.");
         toast.success({ title: "Withdrawal refused", body: `${e.reason ?? "ActorDelegated"}. The attacker received nothing.` }, "refuse");
         break;
@@ -114,10 +122,39 @@ export function DefensePage() {
   defense.current = { handle, finish };
 
   const reset = useCallback(() => { setNotes([]); setTrace(emptyTrace); setUsdc(null); }, []);
-  const run = useCallback(() => {
+
+  // fetch + stream reader (not EventSource: EventSource auto-reconnects on stream close, which would
+  // silently kick off a second run). One run at a time; aborting the fetch tells the server to stop.
+  const run = useCallback(async () => {
     if (!INTEGRATED || running) return;
     reset(); setRunning(true);
-    // TODO: start the new defense integration; it drives defense.current.handle(...)
+    const ac = new AbortController();
+    abortRef.current = ac;
+    try {
+      const res = await fetch("/api/defense/run", { signal: ac.signal, headers: { Accept: "text/event-stream" } });
+      if (!res.ok || !res.body) throw new Error(`run endpoint returned ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split("\n\n");
+        buf = frames.pop() ?? "";
+        for (const frame of frames) {
+          const line = frame.replace(/^data: /, "").trim();
+          if (!line) continue;
+          try { defense.current.handle(JSON.parse(line) as DefenseEvent); } catch { /* skip bad frame */ }
+        }
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        defense.current.handle({ step: "error", t: Date.now(), msg: "Lost the connection to the run." });
+      }
+    } finally {
+      defense.current.finish();
+    }
   }, [reset, running]);
 
   const blocked = trace.steps.refuse === "done";
@@ -140,7 +177,7 @@ export function DefensePage() {
               {trace.lines.length > 0 && !running && <Button variant="secondary" size="lg" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
               <Button size="lg" onClick={run} disabled={!INTEGRATED || running} icon={<ShieldCheck className="h-4 w-4" />}>{running ? "Running…" : "Run defense"}</Button>
             </div>
-            <span className="text-[12.5px] text-bn-muted">{INTEGRATED ? (running ? "Running…" : "Ready") : "Live run coming soon · read the steps below"}</span>
+            <span className="text-[12.5px] text-bn-muted">{running ? "Running…" : "Ready · server-signed walkthrough"}</span>
           </div>
         </header>
 
@@ -169,8 +206,8 @@ export function DefensePage() {
               }
             />
             <Terminal
-              lines={trace.lines} running={running} explorer={null}
-              command="binonce defend --chain arbitrum-fork"
+              lines={trace.lines} running={running} explorer="https://explorer.testnet.whitechain.io"
+              command="binonce defend --chain whitechain-testnet"
               idle={INTEGRATED ? "Waiting. Press Run defense to start." : "The live run is being rebuilt, so nothing will stream here yet."}
             />
           </div>
@@ -178,9 +215,9 @@ export function DefensePage() {
           <aside className="lg:sticky lg:top-24">
             <MoneyPanel
               top={{
-                label: "Vault", who: "Alice, Bob, Carol · 2 of 2", address: trace.vault ? shortAddr(trace.vault) : "created during the run",
+                label: "Chainwall vault", who: "operator · policy-guarded", address: trace.vault ? shortAddr(trace.vault) : "live tenant",
                 amount: usdc, sym: "USDC", flash: blocked ? "seal" : undefined,
-                status: blocked ? { text: "held", tone: "seal" } : compromised ? { text: "signer taken over", tone: "ember" } : { text: "rules on", tone: "muted" },
+                status: blocked ? { text: "held", tone: "seal" } : compromised ? { text: "operator hijacked", tone: "ember" } : { text: "rules on", tone: "muted" },
               }}
               bottom={{
                 label: "Attacker", who: "tries to withdraw", amount: blocked ? num(trace.attackerUSDC ?? "0") : null, sym: "USDC",
@@ -192,6 +229,10 @@ export function DefensePage() {
               notesHint="Alerts from the vault’s dashboard."
             />
           </aside>
+        </div>
+
+        <div className="mt-6">
+          <DefenseSigner />
         </div>
       </main>
       <Toaster />

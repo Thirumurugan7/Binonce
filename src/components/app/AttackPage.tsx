@@ -41,7 +41,7 @@ export function AttackPage() {
   const [mintOpen, setMintOpen] = useState(false);
   const [activityVersion, setActivityVersion] = useState(0);
 
-  const esRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const nonceStart = useRef(0);
   const doneRef = useRef(false);
   const rafRef = useRef<number | null>(null);
@@ -62,7 +62,7 @@ export function AttackPage() {
       .then((c) => { setConfigured(!!c.configured); setChain(c.chain ?? "Local anvil"); setArkiv(!!c.arkiv); setAttacker(c.attacker ?? null); })
       .catch(() => setConfigured(false));
     fetchBalance();
-    return () => esRef.current?.close();
+    return () => abortRef.current?.abort();
   }, [fetchBalance]);
 
   const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go", tx?: string) => {
@@ -96,7 +96,8 @@ export function AttackPage() {
 
   const finish = useCallback(() => {
     setRunning(false);
-    esRef.current?.close();
+    abortRef.current?.abort();
+    abortRef.current = null;
   }, []);
 
   const txLink = useCallback((h?: string | null) => {
@@ -115,7 +116,7 @@ export function AttackPage() {
         break;
       case "before":
         setTusd(num(e.victimTUSD ?? "0"));
-        addLine(t, `${e.msg}: ${e.victimTUSD} tUSD`);
+        addLine(t, `${e.msg}: ${e.victimTUSD} USDC`);
         break;
       case "sign":
         activate("sign");
@@ -184,8 +185,8 @@ export function AttackPage() {
         const drained = num(e.drained ?? "") || BASE;
         setTrace((tr) => ({ ...tr, attackerRecv: e.attackerTUSD ?? null }));
                 tween(num(e.victimTUSD ?? "0"), drained, 2200);
-        addLine(t, `Drained ${e.drained} tUSD to the attacker`, "hot");
-        setTrace((tr) => { toast.warning({ title: `${money(drained)} tUSD drained`, body: "The whole balance went to the attacker in one call.", link: txLink(tr.sweepTx) }, "sweep"); return tr; });
+        addLine(t, `Drained ${e.drained} USDC to the attacker`, "hot");
+        setTrace((tr) => { toast.warning({ title: `${money(drained)} USDC drained`, body: "The whole balance went to the attacker in one call.", link: txLink(tr.sweepTx) }, "sweep"); return tr; });
         break;
       }
       case "arkiv":
@@ -222,7 +223,9 @@ export function AttackPage() {
     setTrace(emptyTrace); setStolen(0); setElapsed(null); setPreviewPhase(0);
   }, []);
 
-  const run = useCallback(() => {
+  // fetch + stream reader (not EventSource: EventSource auto-reconnects on stream close, which would
+  // silently start a second attack against the same victim). One run at a time; aborting tells the server to stop.
+  const run = useCallback(async () => {
     if (running) return;
     clear();
     setRunning(true);
@@ -231,13 +234,33 @@ export function AttackPage() {
     toast.clear();
     toast.info({ title: `Attack started on ${chain}`, body: "Follow the diagram. Each step is a real transaction." });
     document.getElementById("stage")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const es = new EventSource("/api/run");
-    esRef.current = es;
-    es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch { /* ignore malformed line */ } };
-    es.onerror = () => {
-      es.close(); finish();
-      if (!doneRef.current) toast.error({ title: "Lost the connection to the run", body: "The chain may still finish it. Refresh to see the wallet’s real balance." });
-    };
+    const ac = new AbortController();
+    abortRef.current = ac;
+    try {
+      const res = await fetch("/api/run", { signal: ac.signal, headers: { Accept: "text/event-stream" } });
+      if (!res.ok || !res.body) throw new Error(`run endpoint returned ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split("\n\n");
+        buf = frames.pop() ?? "";
+        for (const f of frames) {
+          const line = f.replace(/^data: /, "").trim();
+          if (!line) continue;
+          try { handle(JSON.parse(line)); } catch { /* skip bad frame */ }
+        }
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError") && !doneRef.current) {
+        toast.error({ title: "Lost the connection to the run", body: "The chain may still finish it. Refresh to see the wallet’s real balance." });
+      }
+    } finally {
+      finish();
+    }
   }, [running, clear, handle, finish, chain]);
 
   const onMinted = useCallback((balance: number) => {
