@@ -1,195 +1,156 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { ShieldCheck, RotateCcw } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { ShieldCheck, RotateCcw, ArrowRight } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
-import { Walkthrough } from "./Walkthrough";
-import { Terminal } from "./Terminal";
-import { MoneyPanel, type Note } from "./MoneyPanel";
-import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState } from "./DefenseTrace";
-import type { DefenseEvent } from "@/lib/defense-types";
-import { num, shortAddr } from "@/lib/format";
+import { StepsPanel } from "./StepsPanel";
+import { BalanceCard, AssetsTable, TxHistory, PortfolioSidebar, type HistoryRow, type PortfolioAlert } from "./portfolio/Portfolio";
+import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState, type DefenseKey } from "./DefenseTrace";
 import { Toaster, toast } from "@/components/toast";
 
 /**
- * The Chainwall SSE backend was removed while the defense is rebuilt. Set this to true once a new
- * integration calls `defense.current.handle(event)` per step and `defense.current.finish()` at the end.
+ * The defense, shown on the same portfolio UI as the attack — this time the money sits in a
+ * Chainwall vault. The live on-chain run was stripped while the backend is rebuilt, so this is a
+ * guided walkthrough: step through it and watch the vault refuse the exact trick that drained the
+ * wallet on the attack page. Amounts are illustrative; the attack page is the one on a real chain.
  */
-const INTEGRATED = false;
 
-const emptyTrace: DefenseTraceState = {
-  steps: { vault: "idle", payout: "idle", hijack: "idle", detect: "idle", refuse: "idle" },
-  lines: [], registry: null, interact: null, vault: null,
-  fundUSDC: null, recipientUSDC: null, vaultUSDC: null,
-  carol: null, carolCode: null, delegate: null, attempted: null, reason: null, attackerUSDC: null,
-};
+const FUNDED = 1_000_000;
+const PAYOUT = 120_000;
+const AFTER = FUNDED - PAYOUT;
+const T0 = Date.UTC(2026, 9, 29, 9, 0, 0); // fixed timeline so the history reads sensibly
+const addr = (h: string) => h;
+const VAULT = addr("0x5a11fac3b0c0ffee00000000000000000000d0c5");
+const CAROL = addr("0xca401f00000000000000000000000000000000ab");
+const DELEGATE = addr("0x5weeep00000000000000000000000000000000ff");
+
+// Full vault state at each step of the walkthrough, 0 = nothing done yet … 5 = refused.
+type Phase = 0 | 1 | 2 | 3 | 4 | 5;
+const STEP_PHASE: Record<DefenseKey, Phase> = { vault: 1, payout: 2, hijack: 3, detect: 4, refuse: 5 };
 
 export function DefensePage() {
-  const [usdc, setUsdc] = useState<number | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [trace, setTrace] = useState<DefenseTraceState>(emptyTrace);
-  const [running, setRunning] = useState(false);
-  const chain = "Arbitrum One fork";
-  const noteId = useRef(0);
+  const [phase, setPhase] = useState<Phase>(0);
+  const chain = "Chainwall vault · walkthrough";
 
-  const addNote = useCallback((kind: Note["kind"], title: string, sub: string) => {
-    const id = ++noteId.current;
-    setNotes((n) => [{ id, kind, title, sub, t: Date.now() }, ...n].slice(0, 4));
-  }, []);
-  const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go") => {
-    setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind }] }));
-  }, []);
-  const setStep = useCallback((key: keyof DefenseTraceState["steps"], status: DefenseTraceState["steps"][keyof DefenseTraceState["steps"]]) => {
-    setTrace((tr) => ({ ...tr, steps: { ...tr.steps, [key]: status } }));
-  }, []);
-  const activate = useCallback((key: keyof DefenseTraceState["steps"]) => {
-    setTrace((tr) => {
-      const steps = { ...tr.steps };
-      (Object.keys(steps) as (keyof DefenseTraceState["steps"])[]).forEach((k) => { if (steps[k] === "active") steps[k] = "done"; });
-      steps[key] = "active";
-      return { ...tr, steps };
+  const trace: DefenseTraceState = useMemo(() => ({
+    steps: {
+      vault: phase >= 1 ? "done" : "idle",
+      payout: phase >= 2 ? "done" : phase === 1 ? "active" : "idle",
+      hijack: phase >= 3 ? "done" : phase === 2 ? "active" : "idle",
+      detect: phase >= 4 ? "done" : phase === 3 ? "active" : "idle",
+      refuse: phase >= 5 ? "done" : phase === 4 ? "active" : "idle",
+    },
+    lines: [],
+    registry: phase >= 1 ? "0x9e915700000000000000000000000000000000c7" : null,
+    interact: phase >= 1 ? "0x1n73rac700000000000000000000000000000e9" : null,
+    vault: phase >= 1 ? VAULT : null,
+    fundUSDC: phase >= 1 ? String(FUNDED) : null,
+    recipientUSDC: phase >= 2 ? String(PAYOUT) : null,
+    vaultUSDC: phase >= 5 ? String(AFTER) : phase >= 2 ? String(AFTER) : phase >= 1 ? String(FUNDED) : null,
+    carol: phase >= 3 ? CAROL : null,
+    carolCode: phase >= 3 ? `0xef0100${DELEGATE.replace(/^0x/, "")}` : null,
+    delegate: phase >= 3 ? DELEGATE : null,
+    attempted: phase >= 4 ? String(AFTER) : null,
+    reason: phase >= 5 ? "ActorDelegated" : null,
+    attackerUSDC: phase >= 5 ? "0" : null,
+  }), [phase]);
+
+  // Only advance when the current step is clicked through; keeps the demo deliberate.
+  const next = useCallback(() => {
+    setPhase((p) => {
+      const np = Math.min(5, p + 1) as Phase;
+      const toastByPhase: Record<number, () => void> = {
+        1: () => toast.success({ title: "Vault created", body: `${FUNDED.toLocaleString()} USDC behind a 2-of-2 policy.` }),
+        2: () => toast.success({ title: "Payout executed", body: `${PAYOUT.toLocaleString()} USDC, approved by 2 of 2.` }),
+        3: () => toast.warning({ title: "A signer was taken over", body: "Carol’s account now runs an outside contract." }),
+        4: () => toast.info({ title: "Chainwall spotted it", body: "Carol’s code starts with 0xef0100." }),
+        5: () => toast.success({ title: "Withdrawal refused", body: "ActorDelegated. The attacker received nothing." }),
+      };
+      toastByPhase[np]?.();
+      return np;
     });
   }, []);
-  const finish = useCallback(() => setRunning(false), []);
+  const reset = useCallback(() => { setPhase(0); toast.clear(); }, []);
 
-  const handle = useCallback((e: DefenseEvent) => {
-    const t = e.t ?? Date.now();
-    switch (e.step) {
-      case "setup": setTrace((tr) => ({ ...tr, carol: e.carol ?? null })); addLine(t, e.msg ?? "", "go"); break;
-      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Creating the vault", body: "Registry, execution engine and vault, on-chain." }, "vault"); break;
-      case "vault-deployed": setTrace((tr) => ({ ...tr, registry: e.registry ?? null, interact: e.interact ?? null })); addLine(t, e.msg ?? ""); break;
-      case "configure": addLine(t, e.msg ?? ""); break;
-      case "vault-ready": setTrace((tr) => ({ ...tr, vault: e.vault ?? null })); addLine(t, e.msg ?? ""); break;
-      case "fund":
-        setTrace((tr) => ({ ...tr, fundUSDC: e.vaultUSDC ?? null }));
-        setStep("vault", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
-        toast.success({ title: "Vault funded", body: `${e.vaultUSDC ?? ""} USDC, guarded by a 2-of-2 policy.` }, "vault");
-        break;
-      case "payout-propose": activate("payout"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Running a normal payout", body: "Alice proposes, Bob approves." }, "payout"); break;
-      case "payout-approve": case "payout-exec": addLine(t, e.msg ?? ""); break;
-      case "payout-done":
-        setTrace((tr) => ({ ...tr, recipientUSDC: e.recipientUSDC ?? null, vaultUSDC: e.vaultUSDC ?? null }));
-        setStep("payout", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
-        addNote("ok", "Payment sent", `${e.recipientUSDC ?? ""} USDC · approved by 2 of 2`);
-        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC, approved by 2 of 2.` }, "payout");
-        break;
-      case "delegate": activate("hijack"); addLine(t, e.msg ?? "", "hot"); break;
-      case "delegate-deploy": setTrace((tr) => ({ ...tr, delegate: e.delegate ?? null })); addLine(t, e.msg ?? "", "hot"); break;
-      case "delegate-done":
-        setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, carolCode: e.code ?? null, delegate: e.delegate ?? tr.delegate }));
-        setStep("hijack", "done"); addLine(t, e.msg ?? "", "hot");
-        addNote("warn", "Signer changed", "An EIP-7702 delegation was added to Carol’s account.");
-        toast.warning({ title: "A signer was taken over", body: "Carol’s account now runs the attacker’s contract." }, "hijack");
-        break;
-      case "detect":
-        activate("detect"); setStep("detect", "done");
-        setTrace((tr) => ({ ...tr, carol: e.carol ?? tr.carol, delegate: e.delegate ?? tr.delegate }));
-        addLine(t, e.msg ?? "", "ok");
-        toast.info({ title: "Chainwall spotted the delegation", body: "Carol’s code starts with 0xef0100." }, "detect");
-        break;
-      case "attack":
-        activate("refuse");
-        setTrace((tr) => ({ ...tr, attempted: e.amount ?? e.attempted ?? null }));
-        addLine(t, e.msg ?? "", "hot");
-        addNote("warn", "Withdrawal attempt", `${e.amount ?? ""} USDC · via Carol’s account`);
-        toast.loading({ title: "Attacker is trying to withdraw", body: `${e.amount ?? ""} USDC through Carol’s account.` }, "refuse");
-        break;
-      case "refuse":
-        setTrace((tr) => ({ ...tr, reason: e.reason ?? null, vaultUSDC: e.vaultUSDC ?? tr.vaultUSDC, attackerUSDC: e.attackerUSDC ?? "0", attempted: e.attempted ?? tr.attempted }));
-        setStep("refuse", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
-        addNote("ok", "Withdrawal blocked", "The vault refused a signer running someone else’s code.");
-        toast.success({ title: "Withdrawal refused", body: `${e.reason ?? "ActorDelegated"}. The attacker received nothing.` }, "refuse");
-        break;
-      case "done": addLine(t, e.msg ?? "", "ok"); finish(); break;
-      case "error": case "fatal": addLine(t, e.msg ?? "", "hot"); toast.error({ title: "The run hit an error", body: e.msg ?? "See the log." }); break;
-      case "stderr": addLine(t, e.msg ?? "", "hot"); break;
-      case "closed": finish(); break;
-      default: if (e.msg) addLine(t, e.msg);
-    }
-  }, [addLine, addNote, activate, setStep, finish]);
+  const balance = phase === 0 ? null : phase >= 2 ? AFTER : FUNDED;
+  const compromised = phase >= 3 && phase < 5;
+  const blocked = phase >= 5;
 
-  // Integration seam for the rebuilt defense backend.
-  const defense = useRef({ handle, finish });
-  defense.current = { handle, finish };
+  const history: HistoryRow[] = [];
+  if (phase >= 5) history.push({ id: "refuse", kind: "blocked", title: "Withdrawal refused · USDC", detail: "A signer running outside code was turned away (ActorDelegated)", amount: `${AFTER.toLocaleString()}`, status: "refused", t: T0 + 4000 });
+  if (phase >= 2) history.push({ id: "payout", kind: "out", title: "Payment · USDC", detail: "Proposed by Alice, approved by Bob — 2 of 2", amount: `-${PAYOUT.toLocaleString()}`, status: "done", t: T0 + 2000, hash: null });
+  if (phase >= 1) history.push({ id: "fund", kind: "in", title: "Vault funded · USDC", detail: "Deposited into the Chainwall vault", amount: `+${FUNDED.toLocaleString()}`, status: "done", t: T0, hash: null });
 
-  const reset = useCallback(() => { setNotes([]); setTrace(emptyTrace); setUsdc(null); }, []);
-  const run = useCallback(() => {
-    if (!INTEGRATED || running) return;
-    reset(); setRunning(true);
-    // TODO: start the new defense integration; it drives defense.current.handle(...)
-  }, [reset, running]);
-
-  const blocked = trace.steps.refuse === "done";
-  const compromised = trace.steps.hijack === "done";
+  const alert: PortfolioAlert | null =
+    phase === 2 ? { tone: "ok", title: "Normal payment went through", body: "The 2-of-2 rule was met, so the vault paid out. Rules don’t block real use." }
+    : phase === 3 ? { tone: "warn", title: "A vault signer was taken over", body: "Carol’s account was delegated to an outside contract — the same trick as the attack page." }
+    : phase === 4 ? { tone: "info", title: "The vault checked who was asking", body: "Before acting for Carol, it read her code and saw 0xef0100 — not a person any more." }
+    : phase === 5 ? { tone: "ok", title: "Attack refused · funds untouched", body: "A valid signature isn’t an approved action. The attacker received nothing." }
+    : null;
+  const hit = blocked ? { sym: "USDC", tone: "held" as const } : null;
 
   return (
     <>
       <AppNav chain={chain} />
-      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pb-20">
-        <header className="flex flex-wrap items-end gap-x-10 gap-y-6 pt-10 pb-8 border-b border-bn-line mb-8">
-          <div className="flex-1 min-w-[18rem]">
-            <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">Defense</h1>
-            <p className="text-[16px] leading-relaxed text-bn-ink-2 mt-4 mb-0 max-w-[42rem]">
-              The same stolen-key trick, aimed at money kept in a Chainwall vault instead of a plain wallet. The vault checks
-              who is asking before it moves anything, so when a signer has been taken over, it says no.
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5 border-b border-bn-line mb-6">
+          <div className="min-w-0 flex-1 basis-[26rem]">
+            <h1 className="m-0 text-[15px] font-medium text-bn-ink">
+              Defense <span className="font-normal text-bn-muted">· the same trick, aimed at a Chainwall vault</span>
+            </h1>
+            <p className="m-0 mt-1 text-[13.5px] text-bn-ink-2 max-w-[46rem]">
+              The money sits in a vault that checks who is asking before it moves anything. Step through it and watch the
+              vault refuse the exact drain that emptied the wallet on the attack page.
             </p>
           </div>
-          <div className="flex flex-col items-start sm:items-end gap-2.5">
-            <div className="flex gap-2.5">
-              {trace.lines.length > 0 && !running && <Button variant="secondary" size="lg" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
-              <Button size="lg" onClick={run} disabled={!INTEGRATED || running} icon={<ShieldCheck className="h-4 w-4" />}>{running ? "Running…" : "Run defense"}</Button>
-            </div>
-            <span className="text-[12.5px] text-bn-muted">{INTEGRATED ? (running ? "Running…" : "Ready") : "Live run coming soon · read the steps below"}</span>
-          </div>
-        </header>
+          <span className="text-[12.5px] text-bn-muted self-end">{phase === 0 ? "Not started" : phase >= 5 ? "Finished" : `Step ${phase} of 5`} · illustrative amounts</span>
+        </div>
 
-        {!INTEGRATED && (
-          <div role="status" className="mb-8 rounded-panel border border-bn-amber/40 bg-bn-amber/[0.07] px-5 py-4 text-[14px] text-bn-ink-2 leading-relaxed">
-            <b className="font-medium text-bn-ink">The live run is being rebuilt.</b> Until it’s back, click through the five
-            steps below to see what it does. Each one describes the real transaction it sends to a local fork of Arbitrum One.
-          </div>
-        )}
+        <div role="status" className="mb-6 rounded-data border border-bn-line bg-bn-paper-2/60 px-4 py-2.5 text-[13px] text-bn-ink-2">
+          Walkthrough only — the live on-chain defense run is being rebuilt. Numbers here are illustrative; the attack page is the one that runs on a real chain.
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
-          <div className="flex flex-col gap-6 min-w-0">
-            <Walkthrough
-              steps={DEFENSE_STEPS}
-              statuses={trace.steps}
-              tone="seal"
+        <div className="grid grid-cols-1 xl:grid-cols-[200px_minmax(0,1fr)_380px] gap-6 items-start">
+          <PortfolioSidebar account="Treasury vault · demo" />
+
+          <div className="flex flex-col gap-5 min-w-0">
+            <BalanceCard
+              label="Chainwall vault" address={phase >= 1 ? VAULT : null} sym="USDC"
+              balance={balance} usd={balance} hidden={false} onToggleHidden={() => {}}
+              pnl={phase >= 2 ? { delta: -PAYOUT, pct: (-PAYOUT / FUNDED) * 100 } : null}
+              points={phase === 0 ? [] : phase >= 2 ? [FUNDED, AFTER] : [FUNDED]}
+              alert={alert} flash={blocked ? "held" : undefined}
+              security={compromised
+                ? { tone: "danger", text: "A signer is compromised", sub: "One signer runs outside code; the vault stops trusting it." }
+                : { tone: "ok", text: blocked ? "Held by policy" : "Guarded by a 2-of-2 policy", sub: "The vault checks who is asking before it moves money." }}
+            />
+            <AssetsTable
+              assets={[{ sym: "USDC", name: "USD Coin", amt: balance, price: 1, priceNote: "illustrative" }]}
+              hidden={false} hit={hit}
+            />
+            <TxHistory rows={history} explorer={null} empty="Nothing yet. Start the walkthrough to fund the vault." />
+          </div>
+
+          <aside className="flex flex-col gap-5 xl:sticky xl:top-20">
+            <StepsPanel
+              title="How the vault refuses it" sub="Chainwall, step by step" tone="seal" live={phase > 0 && phase < 5}
+              steps={DEFENSE_STEPS} statuses={trace.steps}
               evidence={(k, st) => <DefenseEvidence k={k} st={st} state={trace} />}
-              finale={
-                <>
-                  <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] leading-tight text-bn-ink mt-2 mb-0">The vault kept its money.</h2>
-                  <p className="text-[15.5px] leading-relaxed text-bn-ink-2 mt-3 mb-0 max-w-[44rem]">
-                    The attacker had a valid key and a valid-looking signature, and still received nothing. A valid signature
-                    is not an approved action.
+              footer={
+                <div className="flex flex-col gap-3">
+                  <p className="m-0 flex items-start gap-2.5 text-[13px] leading-snug text-bn-fog-2">
+                    <span className={`mt-1.5 h-2 w-2 rounded-full flex-none ${blocked ? "bg-bn-seal-glow" : "bg-bn-fog-2/50"}`} aria-hidden />
+                    {blocked ? "The vault kept its money. A valid signature is not an approved action." : "Step through to the end to see the vault refuse the attack."}
                   </p>
-                </>
+                  <div className="flex flex-wrap gap-2.5">
+                    {phase < 5
+                      ? <Button variant="inverse" onClick={next} icon={<ArrowRight className="h-4 w-4" />}>{phase === 0 ? "Start walkthrough" : "Next step"}</Button>
+                      : <Button variant="inverse" onClick={reset} icon={<ShieldCheck className="h-4 w-4" />}>Run it again</Button>}
+                    {phase > 0 && phase < 5 && <Button variant="inverse-ghost" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>Restart</Button>}
+                  </div>
+                </div>
               }
-            />
-            <Terminal
-              lines={trace.lines} running={running} explorer={null}
-              command="binonce defend --chain arbitrum-fork"
-              idle={INTEGRATED ? "Waiting. Press Run defense to start." : "The live run is being rebuilt, so nothing will stream here yet."}
-            />
-          </div>
-
-          <aside className="lg:sticky lg:top-24">
-            <MoneyPanel
-              top={{
-                label: "Vault", who: "Alice, Bob, Carol · 2 of 2", address: trace.vault ? shortAddr(trace.vault) : "created during the run",
-                amount: usdc, sym: "USDC", flash: blocked ? "seal" : undefined,
-                status: blocked ? { text: "held", tone: "seal" } : compromised ? { text: "signer taken over", tone: "ember" } : { text: "rules on", tone: "muted" },
-              }}
-              bottom={{
-                label: "Attacker", who: "tries to withdraw", amount: blocked ? num(trace.attackerUSDC ?? "0") : null, sym: "USDC",
-                status: blocked ? { text: "got nothing", tone: "seal" } : undefined,
-              }}
-              flow={blocked ? "Blocked: no money moved" : "The attacker tries to move money here"}
-              notes={notes}
-              notesTitle="What the treasury team sees"
-              notesHint="Alerts from the vault’s dashboard."
             />
           </aside>
         </div>
