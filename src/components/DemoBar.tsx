@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Loader2, PanelRightOpen, Zap, RotateCcw } from "lucide-react";
+import { Play, Loader2, RotateCcw } from "lucide-react";
 
 export function DemoBar({
   state, live, running, disabled, chain, onRun, onTrace, onReset, resetting,
@@ -10,43 +10,42 @@ export function DemoBar({
   onRun: () => void; onTrace: () => void; onReset: () => void; resetting: boolean;
 }) {
   return (
-    <div className="fixed left-0 right-0 bottom-0 z-50 bg-night/95 backdrop-blur text-[#EAECEF] flex items-center gap-4 px-5 py-3 border-t border-night-line">
-      <div className="flex items-center gap-2.5">
-        <span className={`h-2 w-2 rounded-full ${live ? "bg-down animate-beat" : "bg-dim-2"}`} />
-        <span className="font-mono text-[11px] text-down tracking-wide">{state}</span>
+    <div className="fixed left-0 right-0 bottom-0 z-50 bg-surface/90 backdrop-blur border-t border-line">
+      <div className="max-w-shell mx-auto flex items-center gap-4 px-5 sm:px-6 h-14">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className={`h-1.5 w-1.5 rounded-full flex-none ${live ? "bg-down animate-beat" : "bg-ink-4"}`} />
+          <span className="text-[13px] text-ink truncate">{state}</span>
+          <span className="hidden sm:inline text-[12px] text-ink-4 font-mono">· {chain}</span>
+        </div>
+
+        <span className="flex-1" />
+
+        <button
+          onClick={onTrace}
+          className="text-[13px] font-medium text-ink-3 hover:text-ink transition-colors px-2 py-2"
+        >
+          Walkthrough
+        </button>
+        <button
+          onClick={onReset}
+          disabled={running || resetting || disabled}
+          title="Deploy a fresh token, sweeper, victim and attacker, and re-mint 2.5M"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-3 hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2 py-2"
+        >
+          {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+          <span className="hidden sm:inline">{resetting ? "Resetting" : "Reset"}</span>
+        </button>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={onRun}
+          disabled={running || disabled}
+          title={disabled ? "Run `npm run setup` first" : undefined}
+          className="inline-flex items-center gap-2 rounded-btn px-4 py-2 font-semibold text-[13px] bg-down text-white hover:bg-[#e03a4c] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-[15px] w-[15px] fill-current" />}
+          {running ? "Running…" : "Launch attack"}
+        </motion.button>
       </div>
-      <span className="text-[12.5px] text-dim hidden md:flex items-center gap-1.5">
-        <Zap className="h-3.5 w-3.5" /> Real EIP-7702 drain, executed on-chain
-      </span>
-      <span className="font-mono text-[11px] text-dim-2 border border-night-line rounded-md px-2 py-1 hidden sm:inline">{chain}</span>
-      <span className="flex-1" />
-      <motion.button
-        whileTap={{ scale: 0.96 }}
-        onClick={onRun}
-        disabled={running || disabled}
-        title={disabled ? "Run `npm run setup` first" : undefined}
-        className="inline-flex items-center gap-2 rounded-btn px-5 py-2.5 font-semibold text-[13px] bg-down text-white hover:bg-[#ff5b6b] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
-        {running ? "Attack running…" : "Launch attack"}
-      </motion.button>
-      <motion.button
-        whileTap={{ scale: 0.96 }}
-        onClick={onTrace}
-        className="inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] bg-white/[0.07] text-[#EAECEF] hover:bg-white/[0.12] transition-colors"
-      >
-        <PanelRightOpen className="h-4 w-4" /> Trace
-      </motion.button>
-      <motion.button
-        whileTap={{ scale: 0.96 }}
-        onClick={onReset}
-        disabled={running || resetting || disabled}
-        title="Deploy a fresh token, sweeper, victim and attacker, and re-mint 2.5M"
-        className="inline-flex items-center gap-2 rounded-btn px-4 py-2.5 font-semibold text-[13px] bg-white/[0.07] text-[#EAECEF] hover:bg-white/[0.12] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-        {resetting ? "Resetting…" : "Reset"}
-      </motion.button>
     </div>
   );
 }

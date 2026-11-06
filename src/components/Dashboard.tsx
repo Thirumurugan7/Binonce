@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Nav } from "./Nav";
-import { WalletRail } from "./WalletRail";
 import { BalanceCard } from "./BalanceCard";
 import { AssetsTable, type Asset } from "./AssetsTable";
 import { Toasts, type ToastItem } from "./Toasts";
-import { AttackTrace, type TraceState } from "./AttackTrace";
+import { AttackModal, type TraceState } from "./AttackModal";
 import { DemoBar } from "./DemoBar";
 import type { AttackEvent } from "@/lib/types";
 import { num, money } from "@/lib/format";
@@ -28,7 +27,16 @@ const emptyTrace: TraceState = {
   nonces: { start: 0, signedUpto: 0, matchIndex: null, show: false },
   lines: [],
   attackerRecv: null,
+  delegateTx: null,
+  delegateBlock: null,
+  sweepTx: null,
+  sweepBlock: null,
+  victimCode: null,
+  sweeperAddr: null,
 };
+
+// Block explorer base for the active chain (tx links in the walkthrough).
+const explorerFor = (chain: string) => (chain === "Sepolia" ? "https://sepolia.etherscan.io" : null);
 
 export function Dashboard() {
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
@@ -43,7 +51,7 @@ export function Dashboard() {
   const [running, setRunning] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [live, setLive] = useState(false);
-  const [dbState, setDbState] = useState("READY");
+  const [dbState, setDbState] = useState("Ready");
   const [disabled, setDisabled] = useState(true);
   const [chain, setChain] = useState("Local anvil");
 
@@ -117,6 +125,7 @@ export function Dashboard() {
     const t = e.t ?? Date.now();
     switch (e.step) {
       case "setup":
+        setTrace((tr) => ({ ...tr, sweeperAddr: e.sweeper ?? null }));
         addLine(t, e.msg ?? "", "go");
         break;
       case "before": {
@@ -132,7 +141,7 @@ export function Dashboard() {
         nonceStart.current = e.victimNonce ?? 1;
         setTrace((tr) => ({ ...tr, nonces: { start: e.victimNonce ?? 1, signedUpto: 0, matchIndex: null, show: true } }));
         addLine(t, e.msg ?? "", "go");
-        setDbState("SIGNING 50 AUTHORIZATIONS");
+        setDbState("Signing authorizations");
         break;
       case "sign-progress":
         setTrace((tr) => ({ ...tr, nonces: { ...tr.nonces, signedUpto: e.index ?? 0 } }));
@@ -147,22 +156,25 @@ export function Dashboard() {
       case "delegate":
         activate("delegate");
         addLine(t, e.msg ?? "", "go");
-        setDbState("BROADCASTING DELEGATION");
+        setDbState("Broadcasting delegation");
         break;
       case "delegate-sent":
+        setTrace((tr) => ({ ...tr, delegateTx: e.txHash ?? null }));
         addLine(t, "Delegation tx broadcast", undefined, e.txHash);
         break;
       case "delegate-mined":
         setStep("delegate", "done");
+        setTrace((tr) => ({ ...tr, delegateBlock: e.block ?? null }));
         addLine(t, `Delegation mined · block ${e.block ?? ""}`, "ok");
         break;
       case "verify":
         if (e.delegated) {
           activate("verify");
           setStep("verify", "done");
+          setTrace((tr) => ({ ...tr, victimCode: e.code ?? null }));
           addLine(t, e.msg ?? "", "hot");
           setAlert("Unusual account activity detected. A delegation was added to this wallet.");
-          setDbState("ACCOUNT HIJACKED");
+          setDbState("Account hijacked");
           addToast("warn", "Security notice", "A smart-contract delegation was added to your account.");
         } else {
           setStep("verify", "fail");
@@ -172,14 +184,16 @@ export function Dashboard() {
       case "sweep":
         activate("sweep");
         addLine(t, e.msg ?? "", "hot");
-        setDbState("DRAINING");
+        setDbState("Draining balance");
         addToast("warn", "Withdrawal submitted", "USDT 2,500,000.00 · processing");
         break;
       case "sweep-sent":
+        setTrace((tr) => ({ ...tr, sweepTx: e.txHash ?? null }));
         addLine(t, "Sweep tx broadcast", undefined, e.txHash);
         break;
       case "sweep-mined":
         setStep("sweep", "done");
+        setTrace((tr) => ({ ...tr, sweepBlock: e.block ?? null }));
         addLine(t, `Sweep mined · block ${e.block ?? ""}`, "ok");
         break;
       case "after": {
@@ -216,7 +230,7 @@ export function Dashboard() {
   const finish = useCallback(() => {
     setRunning(false);
     setLive(false);
-    setDbState("ATTACK COMPLETE");
+    setDbState("Attack complete");
     esRef.current?.close();
   }, []);
 
@@ -249,7 +263,7 @@ export function Dashboard() {
     setRunning(true);
     setLive(true);
     setDrawerOpen(true);
-    setDbState("ATTACK LIVE · ON-CHAIN");
+    setDbState("Running on-chain");
     const es = new EventSource(`/api/run`);
     esRef.current = es;
     es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch {} };
@@ -259,16 +273,15 @@ export function Dashboard() {
   return (
     <>
       <Nav />
-      <div className="max-w-shell mx-auto p-6 grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 pb-20">
-        <WalletRail />
-        <div className="min-w-0">
+      <div className="max-w-shell mx-auto px-5 sm:px-6 py-8 pb-28">
+        <div className="bg-surface border border-line rounded-card shadow-card p-5 sm:p-6">
           <BalanceCard usdt={usdt} total={total} hidden={hidden} draining={draining} onToggleEye={() => setHidden((h) => !h)} pnl={pnl} alert={alert} />
-          <AssetsTable assets={assets} hidden={hidden} hitSym={hitSym} />
         </div>
+        <AssetsTable assets={assets} hidden={hidden} hitSym={hitSym} />
       </div>
 
-      <Toasts items={toasts} shifted={drawerOpen} />
-      <AttackTrace open={drawerOpen} onClose={() => setDrawerOpen(false)} state={trace} />
+      <Toasts items={toasts} />
+      <AttackModal open={drawerOpen} onClose={() => setDrawerOpen(false)} state={trace} explorer={explorerFor(chain)} network={chain} running={running} />
       <DemoBar
         state={dbState}
         live={live}
