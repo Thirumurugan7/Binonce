@@ -5,15 +5,18 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
 import { http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { whitechainTestnet } from "@/lib/demo-config";
+import { whitechainTestnet, sepoliaTestnet } from "@/lib/demo-config";
 import { DefenseWalletBridge } from "./wallet-context";
 
-// Same Privy/wagmi wiring as /demo — the operator connects a wallet to sign Chainwall operations.
+// Same Privy/wagmi wiring as /demo — the connected wallet's network selects which tenant the run targets.
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
 
 const wagmiConfig = createConfig({
-  chains: [whitechainTestnet],
-  transports: { [whitechainTestnet.id]: http("https://rpc.ankr.com/whitechain_testnet") },
+  chains: [whitechainTestnet, sepoliaTestnet],
+  transports: {
+    [whitechainTestnet.id]: http("https://rpc.ankr.com/whitechain_testnet"),
+    [sepoliaTestnet.id]: http("https://rpc.sepolia.ethpandaops.io"),
+  },
 });
 
 export function DefenseProviders({ children }: { children: React.ReactNode }) {
@@ -26,7 +29,7 @@ export function DefenseProviders({ children }: { children: React.ReactNode }) {
       config={{
         loginMethods: ["wallet"],
         defaultChain: whitechainTestnet,
-        supportedChains: [whitechainTestnet],
+        supportedChains: [whitechainTestnet, sepoliaTestnet],
         embeddedWallets: { createOnLogin: "off" },
         appearance: { theme: "dark", accentColor: "#f0b90b", walletList: ["metamask", "rainbow", "wallet_connect", "detected_wallets"] },
       }}

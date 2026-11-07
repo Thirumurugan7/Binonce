@@ -3,13 +3,16 @@
 import { createContext, useContext, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useSwitchChain, useSignTypedData } from "wagmi";
-import { whitechainTestnet } from "@/lib/demo-config";
+import { APP_CHAINS } from "@/lib/demo-config";
+
+const SUPPORTED: number[] = APP_CHAINS.map((c) => c.id);
 
 export interface OperatorWallet {
   ready: boolean;
   connected: boolean;
   address?: `0x${string}`;
-  wrongChain: boolean;
+  chainId?: number; // the connected wallet's network (drives which tenant the run targets)
+  wrongChain: boolean; // connected to a network the app doesn't support
   login: () => void;
   logout: () => void;
   switchChain: () => void;
@@ -33,14 +36,15 @@ export function DefenseWalletBridge({ children }: { children: React.ReactNode })
   const { switchChain } = useSwitchChain();
   const { signTypedDataAsync } = useSignTypedData();
   const connected = authenticated && isConnected;
-  const wrongChain = connected && chainId !== whitechainTestnet.id;
+  const wrongChain = connected && !SUPPORTED.includes(chainId ?? -1);
 
   const value = useMemo<OperatorWallet>(() => ({
-    ready, connected, address, wrongChain, login, logout,
-    switchChain: () => switchChain({ chainId: whitechainTestnet.id }),
+    ready, connected, address, chainId, wrongChain, login, logout,
+    // On an unsupported network, offer to switch to Whitechain (the default); Sepolia is reached by the wallet itself.
+    switchChain: () => switchChain({ chainId: 1874 }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signTypedData: (td) => signTypedDataAsync(td as any),
-  }), [ready, connected, address, wrongChain, login, logout, switchChain, signTypedDataAsync]);
+  }), [ready, connected, address, chainId, wrongChain, login, logout, switchChain, signTypedDataAsync]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

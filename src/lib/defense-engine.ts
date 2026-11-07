@@ -12,27 +12,11 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { DefenseEvent } from "./defense-types";
+import { chainConfig, WHITECHAIN_ID } from "./chains";
 
-// "testnet" broadcasts to live Whitechain testnet 1874 and toggles the 7702 delegation with real
-// type-4 transactions. "fork" runs the same flow against a local anvil fork (anvil_setCode toggle).
+// "fork" (Whitechain only) runs against a local anvil fork with anvil_setCode toggles; otherwise the
+// flow broadcasts real type-4 txns to the selected live testnet. The target network is chosen per-run.
 const MODE = (process.env.DEFENSE_MODE || "testnet").toLowerCase();
-const RPC = process.env.DEFENSE_RPC || process.env.DEFENSE_FORK_RPC ||
-  (MODE === "fork" ? "http://localhost:8549" : "https://rpc.ankr.com/whitechain_testnet");
-const chain = defineChain({
-  id: 1874, name: MODE === "fork" ? "Whitechain Fork" : "Whitechain Testnet",
-  nativeCurrency: { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 },
-  rpcUrls: { default: { http: [RPC] } },
-});
-
-// Live tenant (forked from Whitechain testnet 1874).
-const INTERACT = "0xE389bE2d72c618290E1AdFF7B8BbEE39eC356e45" as const;
-const REGISTRY = "0x7c04a72db4f422fab4d1c94067b6a8cdac6bbb74" as const;
-const VAULT = "0x371B4E49A510Ee007d7879783B309128975CC1A1" as const;
-const TOKEN = "0x1d9F8351F788278D3E181908cEE14c7F5766157F" as const;
-const OPPOL = "0x16c6cdf01674895064373cb0d719b21d67853b8f64a24a73d7c419b6e0817772" as const; // operator-1of
-const IID = "0xc918a5f1cb2670f14afa8bb1928f6a298e37fe1eb914df1b4ec7da9e9f38222a" as const; // transfer
-const SWEEPER = "0xb17f589b3dd10a05d4ef4ed1bdbe4cee8ec2da25" as const;
-const RECIP = "0xcBAee4793486f3Df37dbb584F5a3610ff581A614" as const;
 const ANVIL0_PK = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // fork relayer (prefunded)
 
 const OPERATOR_PK = (process.env.DEFENSE_OPERATOR_PK || "").trim() as Hex;
@@ -58,7 +42,7 @@ const fmt = (raw: bigint) => (Number(raw) / 1e6).toLocaleString("en-US");
 
 const PACE = Number(process.env.DEFENSE_PACE_MS ?? 700); // pause between phases so the walkthrough reads step-by-step
 
-export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseEvent> {
+export async function* runDefense(signal?: AbortSignal, chainId?: number): AsyncGenerator<DefenseEvent> {
   const t = () => Date.now();
   // Paces the walkthrough; also the abort point — if the browser disconnected, stop before the next tx.
   const pause = () => new Promise<void>((resolve, reject) => {
@@ -67,6 +51,19 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
     signal?.addEventListener("abort", () => { clearTimeout(id); reject(new DOMException("aborted", "AbortError")); }, { once: true });
   });
   if (!OPERATOR_PK) { yield { step: "fatal", t: t(), msg: "DEFENSE_OPERATOR_PK is not set on the server." }; return; }
+
+  // Per-network selection. Unknown/omitted chain -> Whitechain (old behavior preserved). Fork mode only
+  // applies to Whitechain (a local anvil fork of it); every other network broadcasts to live testnet.
+  const cfg = chainConfig(chainId);
+  const useFork = MODE === "fork" && cfg.id === WHITECHAIN_ID;
+  const RPC = useFork ? (process.env.DEFENSE_FORK_RPC || "http://localhost:8549") : cfg.rpc;
+  const chain = defineChain({
+    id: cfg.id, name: useFork ? `${cfg.name} (fork)` : cfg.name,
+    nativeCurrency: cfg.id === WHITECHAIN_ID ? { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 } : { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [RPC] } },
+  });
+  const INTERACT = cfg.interact, REGISTRY = cfg.registry, VAULT = cfg.vault, TOKEN = cfg.token;
+  const OPPOL = cfg.operatorPolicy, IID = cfg.transferInteraction, SWEEPER = cfg.sweeper, RECIP = cfg.recipient;
 
   const operator = privateKeyToAccount(OPERATOR_PK);
   const relayer = privateKeyToAccount(RELAYER_PK);
@@ -91,7 +88,7 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
   }
 
   async function setDelegation(target: `0x${string}` | null): Promise<`0x${string}` | undefined> {
-    if (MODE === "fork") {
+    if (useFork) {
       await pub.request({ method: "anvil_setCode" as never, params: [operator.address, target ? "0xef0100" + target.slice(2).toLowerCase() : "0x"] as never });
       return undefined;
     }
@@ -104,9 +101,9 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
 
   // Reachability check.
   try { await pub.getBlockNumber(); }
-  catch { yield { step: "fatal", t: t(), msg: MODE === "fork" ? `Cannot reach the fork at ${RPC}. Start scripts/defense-fork.sh.` : `Cannot reach Whitechain testnet at ${RPC}.` }; return; }
+  catch { yield { step: "fatal", t: t(), msg: useFork ? `Cannot reach the fork at ${RPC}. Start scripts/defense-fork.sh.` : `Cannot reach ${cfg.name} at ${RPC}.` }; return; }
 
-  if (MODE === "fork") {
+  if (useFork) {
     await pub.request({ method: "anvil_setBalance" as never, params: [relayer.address, "0x3635c9adc5dea00000"] as never });
     await pub.request({ method: "anvil_setBalance" as never, params: [operator.address, "0x3635c9adc5dea00000"] as never });
   }
@@ -117,7 +114,7 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
     const nonce = await interact.read.directExecuteNonce([operator.address]);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
     const signature = await operatorWallet.signTypedData({
-      domain: { name: "Interact", version: "1", chainId: 1874, verifyingContract: INTERACT },
+      domain: { name: "Interact", version: "1", chainId: cfg.id, verifyingContract: INTERACT },
       types: { DirectExecuteFromAccount: [
         { name: "actor", type: "address" }, { name: "forwarder", type: "address" }, { name: "account", type: "address" },
         { name: "policyId", type: "bytes32" }, { name: "interactionId", type: "bytes32" }, { name: "argsHash", type: "bytes32" },
@@ -126,7 +123,7 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
       ] },
       primaryType: "DirectExecuteFromAccount",
       message: { actor: operator.address, forwarder, account: VAULT, policyId: OPPOL, interactionId: IID,
-        argsHash, executionBindingHash, maxSteps: 100000n, nativeValue: 0n, deadline, chainId: 1874n, nonce },
+        argsHash, executionBindingHash, maxSteps: 100000n, nativeValue: 0n, deadline, chainId: BigInt(cfg.id), nonce },
     });
     return { signature, deadline };
   }
@@ -151,7 +148,9 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
     };
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const hash = await relayerWallet.writeContract({ ...(await mk()), gas: 2_000_000n });
+        // Fixed gas cap (skips eth_estimateGas, which can falsely revert on a stale load-balanced node).
+        // Headroom for the heavier newer registry builds (Sepolia's directExecute needs ~2.14M).
+        const hash = await relayerWallet.writeContract({ ...(await mk()), gas: 3_500_000n });
         const rc = await pub.waitForTransactionReceipt({ hash });
         if (expectRefusal) {
           return rc.status === "success" ? { ok: true, hash } : { ok: false, reason: "InvalidActorSignature", hash };
@@ -169,7 +168,7 @@ export async function* runDefense(signal?: AbortSignal): AsyncGenerator<DefenseE
 
   // 1 — the vault (forked live tenant)
   yield { step: "setup", t: t(), carol: operator.address, msg: `Operator ${operator.address} signs payouts for the Chainwall vault.` };
-  yield { step: "vault-start", t: t(), msg: MODE === "fork" ? "Reading the Chainwall tenant on a Whitechain fork." : "Reading the live Chainwall tenant on Whitechain testnet 1874." };
+  yield { step: "vault-start", t: t(), msg: useFork ? "Reading the Chainwall tenant on a Whitechain fork." : `Reading the live Chainwall tenant on ${cfg.name}.` };
   yield { step: "vault-deployed", t: t(), registry: REGISTRY, interact: INTERACT, msg: "Registry + execution engine online." };
   if (await isDelegated()) {
     const resetTx = await setDelegation(null);

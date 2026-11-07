@@ -14,6 +14,8 @@ import { SetupNotice } from "./SetupNotice";
 import type { AttackEvent } from "@/lib/types";
 import { num, money, shortAddr } from "@/lib/format";
 import { ARKIV_EXPLORER } from "@/components/landing/links";
+import { useOperatorWallet } from "@/app/defense/wallet-context";
+import { APP_CHAINS, whitechainTestnet } from "@/lib/demo-config";
 
 const BASE = 2_500_000;
 const emptyTrace: TraceState = {
@@ -22,7 +24,6 @@ const emptyTrace: TraceState = {
   lines: [], attackerRecv: null, delegateTx: null, delegateBlock: null,
   sweepTx: null, sweepBlock: null, victimCode: null, sweeperAddr: null, arkivKey: null,
 };
-const explorerFor = (chain: string) => (chain === "Sepolia" ? "https://sepolia.etherscan.io" : null);
 
 export function AttackPage() {
   const [tusd, setTusd] = useState(0);
@@ -36,7 +37,6 @@ export function AttackPage() {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [chain, setChain] = useState("Local anvil");
   const [arkiv, setArkiv] = useState(false);
   const [mintOpen, setMintOpen] = useState(false);
   const [activityVersion, setActivityVersion] = useState(0);
@@ -49,21 +49,28 @@ export function AttackPage() {
   const tusdRef = useRef(0);
   tusdRef.current = tusd;
 
+  // The connected wallet's network selects which tenant the attack targets; default Whitechain.
+  const wallet = useOperatorWallet();
+  const activeChainId = wallet?.connected && !wallet.wrongChain ? (wallet.chainId ?? whitechainTestnet.id) : whitechainTestnet.id;
+  const activeChain = APP_CHAINS.find((c) => c.id === activeChainId) ?? whitechainTestnet;
+  const chain = activeChain.name;
+  const explorer = activeChain.blockExplorers.default.url;
+
   // The wallet's real on-chain state: balance and whether its code is a delegation.
   const fetchBalance = useCallback(() => {
-    fetch("/api/balance").then((r) => r.json()).then((c) => {
+    fetch(`/api/balance?chain=${activeChainId}`).then((r) => r.json()).then((c) => {
       if (!c.configured) return;
       setTusd(c.usdt ?? 0); setVictim(c.victim ?? null); setDelegated(!!c.delegated); setLoaded(true);
     }).catch(() => {});
-  }, []);
+  }, [activeChainId]);
 
   useEffect(() => {
-    fetch("/api/config").then((r) => r.json())
-      .then((c) => { setConfigured(!!c.configured); setChain(c.chain ?? "Local anvil"); setArkiv(!!c.arkiv); setAttacker(c.attacker ?? null); })
+    fetch(`/api/config?chain=${activeChainId}`).then((r) => r.json())
+      .then((c) => { setConfigured(!!c.configured); setArkiv(!!c.arkiv); setAttacker(c.attacker ?? null); })
       .catch(() => setConfigured(false));
     fetchBalance();
     return () => abortRef.current?.abort();
-  }, [fetchBalance]);
+  }, [fetchBalance, activeChainId]);
 
   const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go", tx?: string) => {
     setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind, tx }] }));
@@ -101,9 +108,8 @@ export function AttackPage() {
   }, []);
 
   const txLink = useCallback((h?: string | null) => {
-    const ex = explorerFor(chain);
-    return h && ex ? { href: `${ex}/tx/${h}`, label: `tx ${shortAddr(h)}` } : undefined;
-  }, [chain]);
+    return h && explorer ? { href: `${explorer}/tx/${h}`, label: `tx ${shortAddr(h)}` } : undefined;
+  }, [explorer]);
 
   const handle = useCallback((e: AttackEvent) => {
     const t = e.t ?? Date.now();
@@ -237,7 +243,7 @@ export function AttackPage() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const res = await fetch("/api/run", { signal: ac.signal, headers: { Accept: "text/event-stream" } });
+      const res = await fetch(`/api/run?chain=${activeChainId}`, { signal: ac.signal, headers: { Accept: "text/event-stream" } });
       if (!res.ok || !res.body) throw new Error(`run endpoint returned ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -261,7 +267,7 @@ export function AttackPage() {
     } finally {
       finish();
     }
-  }, [running, clear, handle, finish, chain]);
+  }, [running, clear, handle, finish, chain, activeChainId]);
 
   const onMinted = useCallback((balance: number) => {
     setTusd(balance);
@@ -269,7 +275,6 @@ export function AttackPage() {
     fetchBalance();
   }, [fetchBalance]);
 
-  const explorer = explorerFor(chain);
   const ready = configured === true;
   const finished = trace.steps.sweep === "done";
   const started = trace.lines.length > 0;

@@ -8,11 +8,14 @@ import { Walkthrough } from "./Walkthrough";
 import { Terminal } from "./Terminal";
 import { MoneyPanel, type Note } from "./MoneyPanel";
 import { DefenseSigner } from "./DefenseSigner";
+import { SafeSigner } from "./SafeSigner";
 import { DemoConsole } from "@/components/demo/DemoConsole";
 import { DEFENSE_STEPS, DefenseEvidence, type DefenseTraceState } from "./DefenseTrace";
 import type { DefenseEvent } from "@/lib/defense-types";
 import { num, shortAddr } from "@/lib/format";
 import { Toaster, toast } from "@/components/toast";
+import { useOperatorWallet } from "@/app/defense/wallet-context";
+import { APP_CHAINS, whitechainTestnet } from "@/lib/demo-config";
 
 /**
  * Live run streams from /api/defense/run (SSE), driving `defense.current.handle(event)` per step.
@@ -33,7 +36,13 @@ export function DefensePage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [trace, setTrace] = useState<DefenseTraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
-  const chain = "Whitechain testnet 1874";
+  // The connected wallet's network selects which tenant the run targets; default Whitechain when
+  // not connected or on an unsupported network — so nothing changes unless you connect to Sepolia.
+  const wallet = useOperatorWallet();
+  const activeChainId = wallet?.connected && !wallet.wrongChain ? (wallet.chainId ?? whitechainTestnet.id) : whitechainTestnet.id;
+  const activeChain = APP_CHAINS.find((c) => c.id === activeChainId) ?? whitechainTestnet;
+  const chain = activeChain.name;
+  const explorer = activeChain.blockExplorers.default.url;
   const noteId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -65,7 +74,7 @@ export function DefensePage() {
     const t = e.t ?? Date.now();
     switch (e.step) {
       case "setup": setTrace((tr) => ({ ...tr, carol: e.carol ?? null })); addLine(t, e.msg ?? "", "go"); break;
-      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Reading the vault", body: "Live Chainwall tenant on Whitechain testnet 1874." }, "vault"); break;
+      case "vault-start": activate("vault"); addLine(t, e.msg ?? "", "go"); toast.loading({ title: "Reading the vault", body: "Reading the live Chainwall tenant." }, "vault"); break;
       case "vault-deployed": setTrace((tr) => ({ ...tr, registry: e.registry ?? null, interact: e.interact ?? null })); addLine(t, e.msg ?? ""); break;
       case "configure": addLine(t, e.msg ?? "", undefined, e.txHash); break;
       case "vault-ready": setTrace((tr) => ({ ...tr, vault: e.vault ?? null })); addLine(t, e.msg ?? ""); break;
@@ -132,7 +141,7 @@ export function DefensePage() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const res = await fetch("/api/defense/run", { signal: ac.signal, headers: { Accept: "text/event-stream" } });
+      const res = await fetch(`/api/defense/run?chain=${activeChainId}`, { signal: ac.signal, headers: { Accept: "text/event-stream" } });
       if (!res.ok || !res.body) throw new Error(`run endpoint returned ${res.status}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -156,10 +165,14 @@ export function DefensePage() {
     } finally {
       defense.current.finish();
     }
-  }, [reset, running]);
+  }, [reset, running, activeChainId]);
 
   const blocked = trace.steps.refuse === "done";
   const compromised = trace.steps.hijack === "done";
+  // The wallet-signer and the embedded 2-of-2 console are the Whitechain OKAccount demo. On Sepolia the
+  // defense is the guarded-Safe route (2-of-N Safe owners + a 7702-checked actor), so those don't apply.
+  const isWhitechain = activeChainId === whitechainTestnet.id;
+  const isSafeRoute = !isWhitechain;
 
   return (
     <>
@@ -207,8 +220,8 @@ export function DefensePage() {
               }
             />
             <Terminal
-              lines={trace.lines} running={running} explorer="https://explorer.testnet.whitechain.io"
-              command="binonce defend --chain whitechain-testnet"
+              lines={trace.lines} running={running} explorer={explorer}
+              command={`binonce defend --chain ${activeChain.id}`}
               idle={INTEGRATED ? "Waiting. Press Run defense to start." : "The live run is being rebuilt, so nothing will stream here yet."}
             />
           </div>
@@ -216,9 +229,9 @@ export function DefensePage() {
           <aside className="lg:sticky lg:top-24">
             <MoneyPanel
               top={{
-                label: "Chainwall vault", who: "operator · policy-guarded", address: trace.vault ? shortAddr(trace.vault) : "live tenant",
+                label: isSafeRoute ? "Chainwall Safe" : "Chainwall vault", who: isSafeRoute ? "2-of-3 owners · 7702-checked actor" : "operator · policy-guarded", address: trace.vault ? shortAddr(trace.vault) : "live tenant",
                 amount: usdc, sym: "USDC", flash: blocked ? "seal" : undefined,
-                status: blocked ? { text: "held", tone: "seal" } : compromised ? { text: "operator hijacked", tone: "ember" } : { text: "rules on", tone: "muted" },
+                status: blocked ? { text: "held", tone: "seal" } : compromised ? { text: isSafeRoute ? "actor hijacked" : "operator hijacked", tone: "ember" } : { text: "rules on", tone: "muted" },
               }}
               bottom={{
                 label: "Attacker", who: "tries to withdraw", amount: blocked ? num(trace.attackerUSDC ?? "0") : null, sym: "USDC",
@@ -232,22 +245,39 @@ export function DefensePage() {
           </aside>
         </div>
 
-        <div className="mt-6">
-          <DefenseSigner />
-        </div>
+        {isWhitechain && (
+          <div className="mt-6">
+            <DefenseSigner />
+          </div>
+        )}
+
+        {isSafeRoute && (
+          <>
+            <div className="mt-6 rounded-panel border border-bn-line bg-bn-card/40 px-5 py-4 text-[14px] leading-relaxed text-bn-ink-2">
+              <b className="font-medium text-bn-ink">Guarded-Safe route.</b> On {chain} the payout is approved by a
+              2-of-3 Safe and executed through a Chainwall interaction whose actor is EIP-7702-checked. Two valid owner
+              signatures still can’t move funds once the actor’s key is hijacked — that’s the refusal above.
+            </div>
+            <div className="mt-6">
+              <SafeSigner />
+            </div>
+          </>
+        )}
       </main>
 
-      {/* The full 2-of-2 multisig treasury console (the /demo page), embedded below. */}
-      <section className="border-t border-bn-line mt-8">
-        <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pt-10 pb-2">
-          <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] text-bn-ink m-0">Multisig treasury console</h2>
-          <p className="text-[15px] leading-relaxed text-bn-ink-2 mt-2 mb-0 max-w-[46rem]">
-            The same vault as a full 2-of-2 treasury: a relayer proposes a transfer, two wallets sign it on-chain,
-            and a 1,000,000 USDC spending-cap policy blocks anything over the limit.
-          </p>
-        </div>
-        <DemoConsole embedded />
-      </section>
+      {/* The full 2-of-2 multisig treasury console (the /demo page). Whitechain OKAccount demo only. */}
+      {isWhitechain && (
+        <section className="border-t border-bn-line mt-8">
+          <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pt-10 pb-2">
+            <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] text-bn-ink m-0">Multisig treasury console</h2>
+            <p className="text-[15px] leading-relaxed text-bn-ink-2 mt-2 mb-0 max-w-[46rem]">
+              The same vault as a full 2-of-2 treasury: a relayer proposes a transfer, two wallets sign it on-chain,
+              and a 1,000,000 USDC spending-cap policy blocks anything over the limit.
+            </p>
+          </div>
+          <DemoConsole embedded />
+        </section>
+      )}
 
       <Toaster />
     </>

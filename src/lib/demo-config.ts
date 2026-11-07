@@ -12,6 +12,19 @@ export const whitechainTestnet = defineChain({
   testnet: true,
 });
 
+/** Sepolia Testnet — the mirror Chainwall tenant (also has a SafeFactory). */
+export const sepoliaTestnet = defineChain({
+  id: 11155111,
+  name: "Sepolia Testnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.sepolia.ethpandaops.io"] } },
+  blockExplorers: { default: { name: "Etherscan", url: "https://sepolia.etherscan.io" } },
+  testnet: true,
+});
+
+/** Networks the attack/defense pages support, keyed by chainId. */
+export const APP_CHAINS = [whitechainTestnet, sepoliaTestnet] as const;
+
 /** Live tenant on Whitechain Testnet 1874 (see docs/contracts/whitechain-deployment.md). */
 export const DEMO = {
   registry: "0x7c04a72db4f422fab4d1c94067b6a8cdac6bbb74",

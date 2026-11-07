@@ -1,4 +1,6 @@
 import { runDefense } from "@/lib/defense-engine";
+import { runSafeDefense } from "@/lib/safe-defense";
+import { chainConfig } from "@/lib/chains";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +32,8 @@ export async function GET(req: Request) {
     return new Response(busy, { headers: SSE_HEADERS });
   }
 
+  const chainId = Number(new URL(req.url).searchParams.get("chain")) || undefined;
+
   activeRun = true;
   const ac = new AbortController();
   req.signal.addEventListener("abort", () => ac.abort()); // browser navigated away / closed the stream
@@ -38,7 +42,10 @@ export async function GET(req: Request) {
     async start(controller) {
       const send = (obj: unknown) => controller.enqueue(frame(obj));
       try {
-        for await (const ev of runDefense(ac.signal)) send(ev);
+        // Chains with a Safe route (Sepolia) run the 2-of-N Safe + 7702 defense; everything else
+        // (Whitechain) keeps the pure-viem single-operator OKAccount flow, untouched.
+        const gen = chainConfig(chainId).safe ? runSafeDefense(ac.signal, chainId) : runDefense(ac.signal, chainId);
+        for await (const ev of gen) send(ev);
       } catch (e) {
         if (!(e instanceof Error && e.name === "AbortError")) {
           send({ step: "fatal", t: Date.now(), msg: e instanceof Error ? e.message : String(e) });

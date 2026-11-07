@@ -31,6 +31,8 @@ export async function GET(req: Request) {
     return new Response(busy, { headers: SSE_HEADERS });
   }
 
+  const chainId = Number(new URL(req.url).searchParams.get("chain")) || undefined;
+
   activeRun = true;
   const ac = new AbortController();
   req.signal.addEventListener("abort", () => ac.abort()); // browser navigated away / closed the stream
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
     async start(controller) {
       const emit = (e: AttackEvent) => controller.enqueue(frame(e));
       try {
-        await runAttack(emit, ac.signal);
+        await runAttack(emit, ac.signal, chainId);
       } catch (err) {
         if (!(err instanceof Error && err.name === "AbortError")) {
           emit({ step: "fatal", msg: err instanceof Error ? err.message : String(err) });
