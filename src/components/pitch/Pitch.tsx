@@ -94,7 +94,7 @@ export function Pitch() {
           <div className="max-w-4xl">
             <Mark size={72} animate="once" />
             <Rise delay={0.05}><h1 className="font-serif font-normal text-[clamp(2.8rem,8vw,6rem)] leading-[0.95] tracking-[-0.02em] text-bn-fog mt-7 mb-0">One signature can <span className="text-bn-gold">hand over</span> your wallet.</h1></Rise>
-            <Rise delay={0.18}><p className="text-[clamp(1.1rem,2.2vw,1.5rem)] leading-snug text-bn-fog-2 mt-6 mb-0 max-w-2xl">Binonce replays a real EIP-7702 account-takeover on an exchange-style portfolio, then shows the Chainwall vault that refuses the exact same trick.</p></Rise>
+            <Rise delay={0.18}><p className="text-[clamp(1.1rem,2.2vw,1.5rem)] leading-snug text-bn-fog-2 mt-6 mb-0 max-w-2xl">Binonce replays a real <Term>EIP-7702</Term> account-takeover on an exchange-style portfolio, then shows the <KW>Chainwall</KW> vault that refuses the exact same trick.</p></Rise>
             <Rise delay={0.3}><ScrollHint /></Rise>
           </div>
         </Slide>
@@ -105,7 +105,7 @@ export function Pitch() {
             <div>
               <Rise><Eyebrow>EIP-7702 · live since Pectra, May 2025</Eyebrow></Rise>
               <Rise delay={0.08}><h2 className="font-serif font-normal text-display-m text-bn-ink mt-6 mb-0 text-balance">A wallet can borrow a contract&apos;s code.</h2></Rise>
-              <Rise delay={0.16}><p className="text-body-l text-bn-ink-2 mt-5 mb-0 max-w-prose">With a single type-4 authorization, an ordinary account can point its code at a contract. From then on the account <Hl>runs that contract&apos;s logic</Hl>: its own balance, someone else&apos;s rules.</p></Rise>
+              <Rise delay={0.16}><p className="text-body-l text-bn-ink-2 mt-5 mb-0 max-w-prose">With a single <Term>type-4 authorization</Term>, an ordinary account can point its code at a contract. From then on the account <Hl>runs that contract&apos;s logic</Hl>: its own balance, someone else&apos;s rules.</p></Rise>
             </div>
             <Rise delay={0.2}><DelegationViz /></Rise>
           </div>
@@ -118,7 +118,7 @@ export function Pitch() {
             <Rise delay={0.06}><h2 className="font-serif font-normal text-display-m text-bn-fog mt-6 mb-0 text-balance">One leaked key is the whole attack.</h2></Rise>
             <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 items-center mt-7">
               <div>
-                <Rise delay={0.12}><p className="text-body-l text-bn-fog-2 mt-0 mb-6 max-w-prose">The attacker signs 50 authorizations with the stolen key. One matches the wallet&apos;s nonce and takes effect, the account becomes a sweeper, and the entire balance leaves in a single call.</p></Rise>
+                <Rise delay={0.12}><p className="text-body-l text-bn-fog-2 mt-0 mb-6 max-w-prose">The attacker signs 50 authorizations with the stolen key. One matches the wallet&apos;s nonce and takes effect, the account becomes a <Term>sweeper</Term>, and the entire balance leaves in a single call.</p></Rise>
                 <Rise delay={0.2}>
                   <ul className="grid sm:grid-cols-3 gap-3 list-none p-0 m-0">
                     {[["No approval", "The owner is never asked."], ["No gas", "A relayer pays and broadcasts."], ["No warning", "No screen shows the sign step."]].map(([h, b]) => (
@@ -163,7 +163,7 @@ export function Pitch() {
           <div className="max-w-3xl text-center mx-auto">
             <Rise><Eyebrow onNight>Without Chainwall</Eyebrow></Rise>
             <Rise delay={0.08}><h2 className="font-serif font-normal text-display-l text-bn-fog mt-6 mb-0 text-balance">Watch a real wallet get drained.</h2></Rise>
-            <Rise delay={0.16}><p className="text-body-l text-bn-fog-2 mt-6 mb-8 mx-auto max-w-xl">A live EIP-7702 attack on a Binance-style portfolio, running on testnet. Every step is a real transaction you can open in the explorer.</p></Rise>
+            <Rise delay={0.16}><p className="text-body-l text-bn-fog-2 mt-6 mb-8 mx-auto max-w-xl">A live <Term>EIP-7702</Term> attack on a Binance-style portfolio, running on testnet. Every step is a real transaction you can open in the explorer.</p></Rise>
             <Rise delay={0.24}><Button href="/attack" variant="inverse" size="lg" icon={<ArrowRight className="h-4 w-4" />}>Run the drain</Button></Rise>
           </div>
         </Slide>
@@ -173,7 +173,7 @@ export function Pitch() {
           <div className="max-w-5xl w-full">
             <Rise><Eyebrow>What stops it · Chainwall</Eyebrow></Rise>
             <Rise delay={0.08}><h2 className="font-serif font-normal text-display-m text-bn-ink mt-6 mb-0 text-balance">Money that checks who&apos;s asking.</h2></Rise>
-            <Rise delay={0.16}><p className="text-body-l text-bn-ink-2 mt-5 mb-0 max-w-prose">Chainwall keeps funds in a policy-guarded vault. It only moves money through actions its policy already approves, and it <Hl>checks the actor every time</Hl>, so a delegated signer is turned away.</p></Rise>
+            <Rise delay={0.16}><p className="text-body-l text-bn-ink-2 mt-5 mb-0 max-w-prose"><KW>Chainwall</KW> keeps funds in a policy-guarded vault. It only moves money through actions its policy already approves, and it <Hl>checks the actor every time</Hl>, so a delegated signer is turned away.</p></Rise>
             <Rise delay={0.22}><ArchFlow /></Rise>
             <Rise delay={0.3}><p className="text-[14px] text-bn-ink-2 mt-6 mb-0">Binonce is <Hl>built on top of Chainwall</Hl>. <a href={CHAINWALL} target="_blank" rel="noopener noreferrer" className="bn-focus rounded underline decoration-bn-line underline-offset-2 hover:decoration-bn-ink">okcontract/chainwall ↗</a></p></Rise>
           </div>
@@ -194,7 +194,7 @@ export function Pitch() {
           <div className="max-w-5xl w-full grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-16 items-center">
             <div>
               <Rise><h2 className="font-serif font-normal text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.03] tracking-[-0.02em] text-bn-fog mt-0 mb-0 text-balance">If this keeps going, there&apos;s nothing left for us.</h2></Rise>
-              <Rise delay={0.12}><p className="text-body-l text-bn-fog-2 mt-6 mb-0 max-w-prose">The drains are real and they are accelerating. Chainwall is <Hl onNight>open-source</Hl>, and we built Binonce on top of it: the replay, the public blacklist, and the vault that refuses the attack.</p></Rise>
+              <Rise delay={0.12}><p className="text-body-l text-bn-fog-2 mt-6 mb-0 max-w-prose">The drains are real and they are accelerating. <KW>Chainwall</KW> is <Hl onNight>open-source</Hl>, and we built Binonce on top of it: the replay, the public blacklist, and the vault that refuses the attack.</p></Rise>
               <Rise delay={0.2}>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Button href={REPO} variant="inverse" size="lg" icon={<ArrowUpRight className="h-4 w-4" />}>Binonce on GitHub</Button>
@@ -228,6 +228,11 @@ function Rise({ delay = 0, className = "", children }: { delay?: number; classNa
 function ScrollHint() {
   return <div className="mt-12 inline-flex items-center gap-2 text-[13px] text-bn-fog-2"><ArrowDown className="h-4 w-4 animate-bounce" /> scroll to begin</div>;
 }
+
+// Critical project terms. Gold = Chainwall / the solution (reads on light and dark); `t` = a threat
+// term, emphasised in medium weight so it stands out without a second colour fighting the gold.
+function KW({ children }: { children: React.ReactNode }) { return <span className="font-medium text-bn-gold">{children}</span>; }
+function Term({ children }: { children: React.ReactNode }) { return <span className="font-medium">{children}</span>; }
 
 const TONES = {
   paper: "bg-bn-paper text-bn-ink",
