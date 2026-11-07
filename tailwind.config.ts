@@ -21,6 +21,7 @@ const config: Config = {
           ember: bn("ember"), "ember-ink": bn("ember-ink"), "ember-glow": bn("ember-glow"),
           seal: bn("seal"), "seal-glow": bn("seal-glow"),
           amber: bn("amber"), "amber-glow": bn("amber-glow"),
+          gold: bn("gold"), "gold-soft": bn("gold-soft"),
           info: bn("info"),
         },
       },
