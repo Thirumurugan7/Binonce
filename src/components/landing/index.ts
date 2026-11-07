@@ -5,6 +5,7 @@ export { Cases } from "./Cases";
 export { Anatomy } from "./Anatomy";
 export { TwoViews } from "./TwoViews";
 export { Layers } from "./Layers";
+export { Chainwall } from "./Chainwall";
 export { Blacklist } from "./Blacklist";
 export { RunIt } from "./RunIt";
 export { Footer } from "./Footer";

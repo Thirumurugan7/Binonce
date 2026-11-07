@@ -9,6 +9,7 @@ export const SECTIONS = [
   { id: "cases", label: "Cases" },
   { id: "drain", label: "The drain" },
   { id: "two-views", label: "Two views" },
+  { id: "chainwall", label: "Chainwall" },
   { id: "blacklist", label: "Blacklist" },
   { id: "run", label: "Run it" },
 ] as const;
