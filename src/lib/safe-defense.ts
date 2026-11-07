@@ -60,6 +60,17 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
 
   const abortIf = () => { if (signal?.aborted) throw new DOMException("aborted", "AbortError"); };
   const pause = async () => { for (let i = 0; i < Math.ceil(PACE / 100); i++) { abortIf(); await new Promise((r) => setTimeout(r, 100)); } };
+  // Keep each defense step on screen for at least MIN_STEP_MS (default 3s), even when the real
+  // on-chain action is near-instant. Time already spent in a step counts toward its minimum.
+  const MIN_STEP_MS = Number(process.env.DEFENSE_MIN_STEP_MS ?? 3000);
+  let stepAt = 0;
+  const holdStep = async () => {
+    if (stepAt) {
+      const until = stepAt + MIN_STEP_MS;
+      while (Date.now() < until) { abortIf(); await new Promise((r) => setTimeout(r, Math.min(100, until - Date.now()))); }
+    }
+    stepAt = Date.now();
+  };
 
   const cast = (args: string[]) => sh(CAST, [...args, "--rpc-url", rpc], env);
   const cw = (args: string[]) => sh(CHAINWALL, [...args, "--profile", S.profile, "--password-file", PW], env);
@@ -110,6 +121,7 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
 
     // 1 — the guarded Safe
     yield { step: "setup", t: t(), carol: ACTOR, msg: `Execution actor ${ACTOR} drives payouts from a 2-of-3 Safe (Chainwall-guarded).` };
+    await holdStep();
     yield { step: "vault-start", t: t(), msg: `Reading the live Chainwall Safe tenant on ${cfg.name}.` };
     yield { step: "vault-deployed", t: t(), registry: cfg.registry, interact: cfg.interact, msg: "Registry + execution engine online. Safe owners approve; the Interact checks the actor." };
     if (await isDelegated(ACTOR)) {
@@ -123,6 +135,7 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
 
     // 2 — a normal payout: clean actor + two owner signatures
     const payAmt = BigInt(S.amount);
+    await holdStep();
     yield { step: "payout-propose", t: t(), msg: `Clean actor signs; two Safe owners co-sign a ${fmt(payAmt)} USDC payout; the relayer submits it.` };
     await pause();
     const legit = await runSafeOp(dir, "legit");
@@ -136,6 +149,7 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
     await pause();
 
     // 3 — the 7702 hijack of the actor
+    await holdStep();
     yield { step: "delegate", t: t(), msg: "The attacker runs the EIP-7702 stolen-key trick on the Safe's execution actor." };
     await pause();
     yield { step: "delegate-deploy", t: t(), delegate: SWEEPER, msg: "Delegating the actor's account to the sweeper (EIP-7702)." };
@@ -145,10 +159,12 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
     await pause();
 
     // 4 — detection
+    await holdStep();
     yield { step: "detect", t: t(), carol: ACTOR, delegate: SWEEPER, msg: "The actor's code now starts with 0xef0100 — an EIP-7702 delegation." };
     await pause();
 
     // 5 — the refused payout (owners still sign; the delegated actor is refused)
+    await holdStep();
     yield { step: "attack", t: t(), amount: fmt(payAmt), msg: `Two owners still sign a ${fmt(payAmt)} USDC payout — but the actor is now hijacked.` };
     await pause();
     const vBefore = await usdc(SAFE);
@@ -156,6 +172,7 @@ export async function* runSafeDefense(signal?: AbortSignal, chainId?: number): A
     const vEnd = await usdc(SAFE);
     const held = !refused.executeOk || vEnd >= vBefore;
     if (held) {
+      await holdStep();
       yield { step: "refuse", t: t(), reason: "ActorDelegated", vaultUSDC: fmt(vEnd), attackerUSDC: "0", attempted: fmt(payAmt), txHash: refused.executeTx,
         msg: "Refused: a 7702-delegated actor is not an approved actor, even with two valid owner signatures. No funds moved." };
     } else {

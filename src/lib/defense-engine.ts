@@ -50,6 +50,21 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
     const id = setTimeout(resolve, PACE);
     signal?.addEventListener("abort", () => { clearTimeout(id); reject(new DOMException("aborted", "AbortError")); }, { once: true });
   });
+  // Keep each defense step on screen for at least MIN_STEP_MS (default 3s), even when the real
+  // on-chain action is near-instant. Time already spent in a step counts toward its minimum.
+  const MIN_STEP_MS = Number(process.env.DEFENSE_MIN_STEP_MS ?? 3000);
+  let stepAt = 0;
+  const holdStep = async () => {
+    if (stepAt) {
+      const rem = MIN_STEP_MS - (Date.now() - stepAt);
+      if (rem > 0) await new Promise<void>((resolve, reject) => {
+        if (signal?.aborted) return reject(new DOMException("aborted", "AbortError"));
+        const id = setTimeout(resolve, rem);
+        signal?.addEventListener("abort", () => { clearTimeout(id); reject(new DOMException("aborted", "AbortError")); }, { once: true });
+      });
+    }
+    stepAt = Date.now();
+  };
   if (!OPERATOR_PK) { yield { step: "fatal", t: t(), msg: "DEFENSE_OPERATOR_PK is not set on the server." }; return; }
 
   // Per-network selection. Unknown/omitted chain -> Whitechain (old behavior preserved). Fork mode only
@@ -168,6 +183,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
 
   // 1 — the vault (forked live tenant)
   yield { step: "setup", t: t(), carol: operator.address, msg: `Operator ${operator.address} signs payouts for the Chainwall vault.` };
+  await holdStep();
   yield { step: "vault-start", t: t(), msg: useFork ? "Reading the Chainwall tenant on a Whitechain fork." : `Reading the live Chainwall tenant on ${cfg.name}.` };
   yield { step: "vault-deployed", t: t(), registry: REGISTRY, interact: INTERACT, msg: "Registry + execution engine online." };
   if (await isDelegated()) {
@@ -180,6 +196,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   await pause();
 
   // 2 — a normal payout by the clean operator
+  await holdStep();
   yield { step: "payout-propose", t: t(), msg: "Operator signs a 1,000 USDC payout (gasless); the relayer submits it." };
   await pause();
   const legit = await payout();
@@ -194,6 +211,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   await pause();
 
   // 3 — the 7702 hijack of the operator
+  await holdStep();
   yield { step: "delegate", t: t(), msg: "The attacker runs the EIP-7702 stolen-key trick on the vault's operator." };
   await pause();
   yield { step: "delegate-deploy", t: t(), delegate: SWEEPER, msg: `Delegating the operator's account to the sweeper (EIP-7702).` };
@@ -203,15 +221,18 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   await pause();
 
   // 4 — Chainwall sees it
+  await holdStep();
   yield { step: "detect", t: t(), carol: operator.address, delegate: SWEEPER, msg: "The operator's code now starts with 0xef0100 — an EIP-7702 delegation." };
   await pause();
 
   // 5 — the refused payout
+  await holdStep();
   yield { step: "attack", t: t(), amount: fmt(AMOUNT), msg: `The attacker makes the hijacked operator sign a ${fmt(AMOUNT)} USDC payout from the vault.` };
   await pause();
   const refused = await payout(true);
   const vEnd = await bal(VAULT);
   if (!refused.ok) {
+    await holdStep();
     yield { step: "refuse", t: t(), reason: refused.reason, vaultUSDC: fmt(vEnd), attackerUSDC: "0", attempted: fmt(AMOUNT), txHash: refused.hash,
       msg: `Refused with ${refused.reason}: a delegated account's signature is answered by the sweeper, not the operator. No funds moved.` };
   } else {
