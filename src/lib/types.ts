@@ -2,7 +2,7 @@ export type Step =
   | "setup" | "before" | "sign" | "sign-progress" | "sign-done"
   | "delegate" | "delegate-sent" | "delegate-mined"
   | "verify" | "sweep" | "sweep-sent" | "sweep-mined"
-  | "after" | "arkiv" | "done" | "closed" | "warn" | "error" | "fatal" | "stderr" | "log";
+  | "after" | "arkiv" | "done" | "empty" | "closed" | "warn" | "error" | "fatal" | "stderr" | "log";
 
 export interface AttackEvent {
   t?: number;

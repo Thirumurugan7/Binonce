@@ -1,20 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" width="96" height="96" role="img" aria-label="Binonce">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 26 26" width="96" height="96" role="img" aria-label="Binonce">
   <title>Binonce</title>
   <style>
-    .d{fill:#686358;opacity:.15;animation:d 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-    .l{fill:#E5431F;animation:l 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-    @keyframes d{0%,100%{opacity:.15}35%,60%{opacity:.6}}
+    .d{fill:#C4A050;opacity:.18;animation:d 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+    .l{fill:#F0B90B;animation:l 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+    @keyframes d{0%,100%{opacity:.18}35%,60%{opacity:.7}}
     @keyframes l{0%,30%{opacity:.25;transform:scale(.7)}50%,85%{opacity:1;transform:none}100%{opacity:.25;transform:scale(.7)}}
-    @media (prefers-color-scheme:dark){.d{fill:#9A958A}}
-    @media (prefers-reduced-motion:reduce){.d,.l{animation:none;opacity:1}.d{opacity:.45}}
+    @media (prefers-color-scheme:dark){.l{fill:#F5C52C}}
+    @media (prefers-reduced-motion:reduce){.d,.l{animation:none;opacity:1}.d{opacity:.5}}
   </style>
-  <rect class="l" x=".75" y=".75" width="6.5" height="6.5" rx="1.25"/>
-  <circle class="d" cx="11" cy="4" r="1.7" style="animation-delay:.09s"/>
-  <circle class="d" cx="18" cy="4" r="1.7" style="animation-delay:.18s"/>
-  <circle class="d" cx="4" cy="11" r="1.7" style="animation-delay:.27s"/>
-  <circle class="d" cx="11" cy="11" r="1.7" style="animation-delay:.36s"/>
-  <circle class="d" cx="18" cy="11" r="1.7" style="animation-delay:.45s"/>
-  <circle class="d" cx="4" cy="18" r="1.7" style="animation-delay:.54s"/>
-  <circle class="d" cx="11" cy="18" r="1.7" style="animation-delay:.63s"/>
-  <circle class="d" cx="18" cy="18" r="1.7" style="animation-delay:.72s"/>
+  <g transform="rotate(45 11 11)">
+    <circle class="d" cx="4"  cy="4"  r="1.7" style="animation-delay:.00s"/>
+    <circle class="d" cx="11" cy="4"  r="1.7" style="animation-delay:.09s"/>
+    <circle class="d" cx="18" cy="4"  r="1.7" style="animation-delay:.18s"/>
+    <circle class="d" cx="4"  cy="11" r="1.7" style="animation-delay:.27s"/>
+    <circle class="d" cx="18" cy="11" r="1.7" style="animation-delay:.45s"/>
+    <circle class="d" cx="4"  cy="18" r="1.7" style="animation-delay:.54s"/>
+    <circle class="d" cx="11" cy="18" r="1.7" style="animation-delay:.63s"/>
+    <circle class="d" cx="18" cy="18" r="1.7" style="animation-delay:.72s"/>
+    <rect class="l" x="7.5" y="7.5" width="7" height="7" rx="1.4"/>
+  </g>
 </svg>

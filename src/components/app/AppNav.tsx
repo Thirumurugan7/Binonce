@@ -16,7 +16,7 @@ export function AppNav({ chain }: { chain?: string }) {
   const path = usePathname() ?? "";
   return (
     <header className="sticky top-0 z-50 bg-bn-paper/85 backdrop-blur-md border-b border-bn-line">
-      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3 sm:gap-6">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3 sm:gap-6">
         <Link href="/" className="bn-focus rounded flex-none" aria-label="Binonce home"><Wordmark /></Link>
 
         <nav aria-label="Mode" className="flex items-center gap-1 p-1 rounded-full border border-bn-line bg-bn-card/60">

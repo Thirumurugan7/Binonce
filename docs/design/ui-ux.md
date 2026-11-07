@@ -2,11 +2,12 @@
 
 ## Layout of the app pages
 
-- **Header:** what the page does in one sentence, and the run button.
-- **Walkthrough:** a step tracker; the narrator says in plain words what is happening now and why, with the
-  on-chain evidence underneath (nonce grid, code before/after, transaction links). Any step can be opened before a run.
+- **Controls:** what the page does in one sentence, and the run button.
+- **Portfolio (left):** a stand-in exchange view — balance card, assets, session chart and a recent-transactions
+  list — that reacts live as the run proceeds (the balance drains, security flips, the unapproved withdrawal lands).
+- **Steps panel (right):** a dark, expandable list of what the attacker (or the vault defense) is doing, each step
+  carrying its on-chain evidence underneath (nonce grid, code before/after, transaction links). Any step can be opened.
 - **Live log:** the server-sent events of the run, always visible, with clickable transaction hashes.
-- **Money panel:** victim (or vault) above, attacker below, plus the notifications the owner would see.
 - **Saved to Arkiv:** recorded runs and blacklisted contracts, read from the public registry.
 
 ## Pages

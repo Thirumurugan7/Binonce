@@ -2,8 +2,7 @@
 
 import { ShieldCheck } from "lucide-react";
 import { shortAddr } from "@/lib/format";
-import { NightBox, KV, NightEmpty, type TraceStatus, type ConsoleLine } from "./chain-bits";
-import type { Step } from "./Walkthrough";
+import { NightBox, KV, NightEmpty, type TraceStatus, type ConsoleLine, type Step } from "./chain-bits";
 
 export interface DefenseTraceState {
   steps: Record<"vault" | "payout" | "hijack" | "detect" | "refuse", TraceStatus>;

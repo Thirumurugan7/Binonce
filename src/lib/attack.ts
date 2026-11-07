@@ -1,4 +1,4 @@
-import { parseUnits, formatUnits, encodeFunctionData, keccak256, createPublicClient, createWalletClient, http, defineChain, type Hex } from "viem";
+import { formatUnits, encodeFunctionData, keccak256, createPublicClient, createWalletClient, http, defineChain, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { ERC20_ABI, SWEEPER_ABI } from "./abi";
 import { arkivEnabled, recordDelegation, upsertDelegate } from "./arkiv";
@@ -7,7 +7,6 @@ import type { Emit } from "./types";
 
 const NUM_AUTHS = 50;
 const DEC = 6;
-const START_BALANCE = "2500000"; // minted to each fresh victim
 
 // Real attack on anvil finishes in ~100ms — too fast to watch. Pace the stream so the
 // sequence is presentable. The on-chain actions are unchanged; only the emit cadence is paced.
@@ -25,9 +24,9 @@ function env(k: string) {
  * The REAL Binance-style EIP-7702 attack. Executes on-chain against whatever
  * CHAIN_RPC/CHAIN_ID points at (local anvil by default, or Sepolia).
  *
- * Each run uses a FRESH victim (minted START_BALANCE tUSD) so the demo is
- * repeatable. The relayer pays gas and broadcasts; the attacker + contracts
- * come from `npm run setup` / deploy.
+ * The victim keeps its real on-chain balance between runs; funding is explicit
+ * (the Deposit button). The relayer pays gas and broadcasts; the attacker +
+ * contracts come from `npm run setup` / deploy.
  */
 export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: number) {
   const E = (e: Parameters<Emit>[0]) => emit({ t: Date.now(), ...e });
@@ -52,16 +51,14 @@ export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: numb
 
   E({ step: "setup", msg: "Actors loaded", victim: victim.address, relayer: relayer.address, attacker, sweeper, tusd });
 
-  // Top the fixed victim up to START_BALANCE: mint only the shortfall, so the real
-  // balance is exactly START_BALANCE before each run (no double-counting across reruns).
-  const target = parseUnits(START_BALANCE, DEC);
-  const cur0 = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
-  if (cur0 < target) {
-    const mintHash = await wallet.writeContract({ address: tusd, abi: ERC20_ABI, functionName: "mint", args: [victim.address, target - cur0] });
-    await pub.waitForTransactionReceipt({ hash: mintHash });
-  }
-
+  // The wallet keeps whatever balance it has on-chain. Funding is an explicit user action
+  // (the Deposit button → /api/mint), never a hidden mint at launch. If it's empty, there's
+  // nothing to drain, so stop early and tell the user to top up first.
   const before = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
+  if (before === 0n) {
+    E({ step: "empty", msg: "The wallet is empty — press Deposit to add test tUSD, then launch the attack." });
+    return;
+  }
   E({ step: "before", msg: "Victim balance before attack", victimTUSD: formatUnits(before, DEC), attackerTUSD: "0" });
   abortIf();
 
