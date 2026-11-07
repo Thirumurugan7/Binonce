@@ -15,7 +15,8 @@ export interface OperatorWallet {
   wrongChain: boolean; // connected to a network the app doesn't support
   login: () => void;
   logout: () => void;
-  switchChain: () => void;
+  /** Switch the connected wallet to a supported chain (defaults to Whitechain 1874). */
+  switchChain: (chainId?: number) => void;
   signTypedData: (td: {
     domain: Record<string, unknown>;
     types: Record<string, { name: string; type: string }[]>;
@@ -40,8 +41,8 @@ export function DefenseWalletBridge({ children }: { children: React.ReactNode })
 
   const value = useMemo<OperatorWallet>(() => ({
     ready, connected, address, chainId, wrongChain, login, logout,
-    // On an unsupported network, offer to switch to Whitechain (the default); Sepolia is reached by the wallet itself.
-    switchChain: () => switchChain({ chainId: 1874 }),
+    // Switch to any supported chain — Whitechain 1874 by default, Sepolia 11155111 from the network menu.
+    switchChain: (id = 1874) => switchChain({ chainId: id }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signTypedData: (td) => signTypedDataAsync(td as any),
   }), [ready, connected, address, chainId, wrongChain, login, logout, switchChain, signTypedDataAsync]);
