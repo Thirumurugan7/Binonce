@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useReadContract, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { ShieldCheck, Check, Loader2, ArrowRight, ExternalLink, Ban } from "lucide-react";
+import { ShieldCheck, Check, Loader2, ArrowRight, ExternalLink, Ban, Info, AlertTriangle } from "lucide-react";
 import { DEMO, INTERACT_ABI, ERC20_ABI, fmtUSDC, whitechainTestnet } from "@/lib/demo-config";
 
 const short = (a?: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -71,6 +71,18 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
   const myIndex = myApprover ? DEMO.approvers.indexOf(myApprover) : -1;
   const myCanApprove = myIndex >= 0 ? canState[myIndex] === true : false;
 
+  // One plain-language "what to do now" line that tracks the flow state, so no one has to guess
+  // which wallet to connect or what the next move is.
+  const guide: { tone: "info" | "warn" | "ok"; text: string } =
+    !connected ? { tone: "info", text: "Connect a treasury-owner wallet from the top bar to begin." }
+    : wrongChain ? { tone: "warn", text: "Switch to Whitechain Testnet in the top bar." }
+    : !myApprover ? { tone: "warn", text: "This wallet isn’t a treasury owner — connect Owner or Approver 2 to sign." }
+    : result?.ok ? { tone: "ok", text: "Done — the payout executed and left the vault." }
+    : !opId ? { tone: "info", text: "Propose a transfer below to start the 2-of-2 approval." }
+    : myCanApprove ? { tone: "info", text: `You’re ${myApprover.label}. Sign below to add your approval.` }
+    : !bothApproved ? { tone: "info", text: "You’ve signed. Switch to the other owner’s wallet in the top bar to add the second signature." }
+    : { tone: "ok", text: "Both owners signed — run Execute to move the funds." };
+
   async function propose() {
     setProposing(true); setResult(null); setOpId(null);
     try {
@@ -129,6 +141,7 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
       <main className={`grid gap-5 lg:grid-cols-[1.4fr_1fr] ${embedded ? "max-w-page mx-auto px-4 sm:px-6 lg:px-10 pt-6 pb-10" : "max-w-page mx-auto px-5 sm:px-6 py-8"}`}>
         {/* left: the flow */}
         <div className="grid gap-5">
+          <GuideBar tone={guide.tone} text={guide.text} />
           {wrongChain && (
             <button onClick={() => switchChain({ chainId: whitechainTestnet.id })}
               className="rounded-panel border border-bn-amber-glow/40 bg-bn-amber-glow/[0.1] text-bn-amber px-4 py-3 text-sm font-medium text-left">
@@ -188,7 +201,7 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
                         {isPending || receipt.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Sign approval
                       </button>
                     )}
-                    {opId && !isMe && stillPending && <p className="mt-3 text-[11px] text-bn-muted">Connect this wallet to sign.</p>}
+                    {opId && !isMe && stillPending && <p className="mt-3 text-[11px] text-bn-muted">Switch to this wallet in the top bar to sign.</p>}
                   </div>
                 );
               })}
@@ -237,6 +250,21 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
           </div>
         </aside>
       </main>
+    </div>
+  );
+}
+
+function GuideBar({ tone, text }: { tone: "info" | "warn" | "ok"; text: string }) {
+  const map = {
+    info: { cls: "border-bn-line bg-bn-paper-2/60 text-bn-ink-2", Icon: Info, iconCls: "text-bn-ink-2" },
+    warn: { cls: "border-bn-amber-glow/40 bg-bn-amber-glow/[0.1] text-bn-amber", Icon: AlertTriangle, iconCls: "text-bn-amber" },
+    ok: { cls: "border-bn-seal/40 bg-bn-seal-glow/[0.08] text-bn-seal", Icon: Check, iconCls: "text-bn-seal" },
+  } as const;
+  const { cls, Icon, iconCls } = map[tone];
+  return (
+    <div className={`flex items-start gap-2.5 rounded-panel border px-4 py-3 text-[13.5px] leading-snug ${cls}`}>
+      <Icon className={`h-4 w-4 mt-0.5 flex-none ${iconCls}`} />
+      <span>{text}</span>
     </div>
   );
 }
