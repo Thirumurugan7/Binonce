@@ -49,13 +49,34 @@ function ctx() {
 // Sessions live between prepare (emits typed data) and submit (injects wallet sigs + executes).
 // Backed by globalThis so the Map is shared across API routes even when Next.js dev recompiles a route
 // into a fresh module instance (a plain module-level Map is NOT reliably shared across routes in dev).
-interface Session { dir: string; createdAt: number; actorDelegated: boolean }
-const g = globalThis as unknown as { __safeSignerSessions?: Map<string, Session> };
+// The session also holds the emitted typed data + each wallet signature as it is collected, so the UI
+// can RESTORE a pending payout after a wallet account-switch / reload instead of re-preparing.
+interface SigSet { actorSig?: string; actorOwnerSig?: string; coSignerSig?: string }
+interface Session {
+  dir: string; createdAt: number; actorDelegated: boolean; deadline: string;
+  actorTypedData: TypedData; safeTxTypedData: TypedData;
+  signers: { actor: string; coSigner: string }; sigs: SigSet;
+}
+// `current` is the one pending session (single-flow demo) so the UI can find it without the sessionId.
+const g = globalThis as unknown as { __safeSignerSessions?: Map<string, Session>; __safeSignerCurrent?: string | null };
 const sessions = (g.__safeSignerSessions ??= new Map<string, Session>());
 const SESSION_TTL = 15 * 60_000;
 function sweepSessions() {
   const now = Date.now();
-  for (const [id, s] of sessions) if (now - s.createdAt > SESSION_TTL) { fs.rm(s.dir, { recursive: true, force: true }).catch(() => {}); sessions.delete(id); }
+  for (const [id, s] of sessions) if (now - s.createdAt > SESSION_TTL) {
+    fs.rm(s.dir, { recursive: true, force: true }).catch(() => {});
+    sessions.delete(id);
+    if (g.__safeSignerCurrent === id) g.__safeSignerCurrent = null;
+  }
+}
+function clearCurrent(id: string) { const s = sessions.get(id); if (s) fs.rm(s.dir, { recursive: true, force: true }).catch(() => {}); sessions.delete(id); if (g.__safeSignerCurrent === id) g.__safeSignerCurrent = null; }
+
+/** Record a wallet signature into the pending session so it survives an account-switch / reload. */
+export function recordSafeSig(sessionId: string, sigs: SigSet) {
+  const s = sessions.get(sessionId);
+  if (!s) return { ok: false, reason: "session expired — prepare again" };
+  s.sigs = { ...s.sigs, ...sigs };
+  return { ok: true, sigs: s.sigs };
 }
 
 async function codeOf(a: string) { const { cast } = ctx(); return (await cast(["code", a])).stdout.trim(); }
@@ -68,6 +89,13 @@ export async function safeState() {
     codeOf(S.actor),
   ]);
   const raw = (() => { try { return BigInt(safeBal); } catch { return 0n; } })();
+  // A pending, not-yet-submitted payout (survives wallet account-switch / reload).
+  sweepSessions();
+  const curId = g.__safeSignerCurrent;
+  const cur = curId ? sessions.get(curId) : undefined;
+  const pending = cur
+    ? { sessionId: curId, deadline: cur.deadline, actorTypedData: cur.actorTypedData, safeTxTypedData: cur.safeTxTypedData, signers: cur.signers, sigs: cur.sigs }
+    : null;
   return {
     ok: true,
     safe: S.address,
@@ -77,6 +105,7 @@ export async function safeState() {
     actorCode,
     sweeper: cfg.sweeper,
     signers: signerInfo(S),
+    pending,
   };
 }
 
@@ -122,16 +151,15 @@ export async function prepareSafeOp() {
     if (so1.code !== 0 || so2.code !== 0) throw new Error(`owner sign failed: ${((so1.stderr || so1.stdout) + (so2.stderr || so2.stdout)).trim().slice(0, 200)}`);
     const actorFile = JSON.parse(await fs.readFile(f("actor"), "utf8"));
     const ownerAFile = JSON.parse(await fs.readFile(f("ownerA"), "utf8"));
+    const actorTypedData = actorFile.typedData as TypedData;
+    const safeTxTypedData = ownerAFile.typedData as TypedData;
+    const signers = signerInfo(S);
+    // Only one pending payout at a time — drop any previous one.
+    if (g.__safeSignerCurrent) clearCurrent(g.__safeSignerCurrent);
     const sessionId = randomBytes(12).toString("hex");
-    sessions.set(sessionId, { dir, createdAt: Date.now(), actorDelegated: await actorDelegated() });
-    return {
-      ok: true,
-      sessionId,
-      deadline,
-      actorTypedData: actorFile.typedData as TypedData,
-      safeTxTypedData: ownerAFile.typedData as TypedData,
-      signers: signerInfo(S),
-    };
+    sessions.set(sessionId, { dir, createdAt: Date.now(), actorDelegated: await actorDelegated(), deadline, actorTypedData, safeTxTypedData, signers, sigs: {} });
+    g.__safeSignerCurrent = sessionId;
+    return { ok: true, sessionId, deadline, actorTypedData, safeTxTypedData, signers };
   } catch (e) {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
     throw e;
@@ -143,9 +171,14 @@ export async function prepareSafeOp() {
  * the ExecutionActor typed data; coSignerSig + actorOwnerSig over the SafeTx (owner approvals). Judges
  * by exit code AND Safe-USDC delta. A 7702-delegated actor -> execute reverts -> refused, funds held.
  */
-export async function submitSafeOp(input: { sessionId: string; actorSig: string; coSignerSig: string; actorOwnerSig: string }) {
+export async function submitSafeOp(input: { sessionId: string; actorSig?: string; coSignerSig?: string; actorOwnerSig?: string }) {
   const s = sessions.get(input.sessionId);
   if (!s) return { ok: false, reason: "session expired — prepare again" };
+  // Prefer the signatures persisted in the session (collected across account-switches); fall back to input.
+  const actorSig = s.sigs.actorSig ?? input.actorSig;
+  const coSignerSig = s.sigs.coSignerSig ?? input.coSignerSig;
+  const actorOwnerSig = s.sigs.actorOwnerSig ?? input.actorOwnerSig;
+  if (!actorSig || !coSignerSig || !actorOwnerSig) return { ok: false, reason: "missing a signature — collect both approvals first" };
   const { cfg, S, cw, cast } = ctx();
   const dir = s.dir;
   const f = (n: string) => path.join(dir, `${n}.json`);
@@ -155,9 +188,9 @@ export async function submitSafeOp(input: { sessionId: string; actorSig: string;
       obj.signature = sig;
       await fs.writeFile(f(out), JSON.stringify(obj));
     };
-    await setSig("actor", input.actorSig, "actor-vi");
-    await setSig("ownerA", input.coSignerSig, "ownerA-vi"); // co-signer owner (wc-owner 0x3ae7…)
-    await setSig("ownerB", input.actorOwnerSig, "ownerB-vi"); // actor-as-owner (approver-3 0x8C46…)
+    await setSig("actor", actorSig, "actor-vi");
+    await setSig("ownerA", coSignerSig, "ownerA-vi"); // co-signer owner (wc-owner 0x3ae7…)
+    await setSig("ownerB", actorOwnerSig, "ownerB-vi"); // actor-as-owner (approver-3 0x8C46…)
     // Safe owner sig array MUST be ascending by signer address: co-signer 0x3ae7 < actor 0x8C46.
     const a = JSON.parse(await fs.readFile(f("ownerA-vi"), "utf8"));
     const b = JSON.parse(await fs.readFile(f("ownerB-vi"), "utf8"));
@@ -173,7 +206,9 @@ export async function submitSafeOp(input: { sessionId: string; actorSig: string;
     const delegated = await actorDelegated();
     return { ok: false, reason: delegated ? "ActorDelegated" : "reverted", hash };
   } finally {
-    sessions.delete(input.sessionId);
-    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+    clearCurrent(input.sessionId);
   }
 }
+
+/** Discard the pending payout (if any) — used when the user wants to start over. */
+export function clearPendingSafeOp() { if (g.__safeSignerCurrent) clearCurrent(g.__safeSignerCurrent); return { ok: true }; }

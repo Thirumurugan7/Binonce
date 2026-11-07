@@ -10,9 +10,10 @@ const EXPLORER = "https://sepolia.etherscan.io";
 
 interface TypedData { domain: Record<string, unknown>; types: Record<string, { name: string; type: string }[]>; primaryType: string; message: Record<string, unknown> }
 interface Prep { sessionId: string; actorTypedData: TypedData; safeTxTypedData: TypedData; signers: { actor: string; coSigner: string } }
-interface State { vaultUSDC: string; amountUSDC: string; delegated: boolean; actorCode: string; sweeper: string; signers: { actor: string; coSigner: string } }
-interface Result { ok: boolean; hash?: string; reason?: string }
 interface Collected { actorSig?: string; actorOwnerSig?: string; coSignerSig?: string }
+interface Pending extends Prep { sigs: Collected }
+interface State { vaultUSDC: string; amountUSDC: string; delegated: boolean; actorCode: string; sweeper: string; signers: { actor: string; coSigner: string }; pending?: Pending | null }
+interface Result { ok: boolean; hash?: string; reason?: string }
 
 // Convert uint/int message fields to BigInt for viem; leave addresses/bytes as-is. EIP712Domain is
 // stripped (viem derives the domain separately) — the proven signing shape.
@@ -45,12 +46,20 @@ export function SafeSigner() {
   const isActor = !!connected && !!state && connected === state.signers.actor.toLowerCase();
   const isCoSigner = !!connected && !!state && connected === state.signers.coSigner.toLowerCase();
 
+  // Load live state AND restore any pending payout (survives a wallet account-switch / page reload).
   const refresh = useCallback(async () => {
-    try { const s = await fetch("/api/defense/safe/state").then((r) => r.json()); if (s.ok) setState(s); } catch {}
+    try {
+      const s = await fetch("/api/defense/safe/state").then((r) => r.json());
+      if (!s.ok) return;
+      setState(s);
+      if (s.pending) {
+        setPrep({ sessionId: s.pending.sessionId, actorTypedData: s.pending.actorTypedData, safeTxTypedData: s.pending.safeTxTypedData, signers: s.pending.signers });
+        setSigs(s.pending.sigs ?? {});
+      }
+    } catch {}
   }, []);
-  useEffect(() => { if (onSepolia) refresh(); }, [onSepolia, refresh]);
-
-  const resetFlow = useCallback(() => { setPrep(null); setSigs({}); setResult(null); setErr(null); }, []);
+  // Re-run on connect, on network change, AND on account change — so switching wallets restores the flow.
+  useEffect(() => { if (onSepolia) refresh(); }, [onSepolia, connected, refresh]);
 
   const prepare = useCallback(async () => {
     setBusy("prepare"); setErr(null); setResult(null); setSigs({});
@@ -65,12 +74,17 @@ export function SafeSigner() {
   const signErr = (e: unknown) => (e instanceof Error && (e.message.includes("rejected") || e.message.includes("denied")) ? "You rejected the signature" : "Signing failed");
 
   // Actor wallet (approver-3): signs its execution authorization AND its owner approval (2 prompts).
+  // Persist a collected signature server-side so it survives an account-switch / reload.
+  const persist = (sessionId: string, sigs: Collected) =>
+    fetch("/api/defense/safe/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId, ...sigs }) }).catch(() => {});
+
   const signAsActor = useCallback(async () => {
     if (!wallet || !prep) return;
     setBusy("actor"); setErr(null);
     try {
       const actorSig = await wallet.signTypedData(coerce(prep.actorTypedData));
       const actorOwnerSig = await wallet.signTypedData(coerce(prep.safeTxTypedData));
+      await persist(prep.sessionId, { actorSig, actorOwnerSig });
       setSigs((s) => ({ ...s, actorSig, actorOwnerSig }));
     } catch (e) { setErr(signErr(e)); }
     finally { setBusy(null); }
@@ -82,6 +96,7 @@ export function SafeSigner() {
     setBusy("cosigner"); setErr(null);
     try {
       const coSignerSig = await wallet.signTypedData(coerce(prep.safeTxTypedData));
+      await persist(prep.sessionId, { coSignerSig });
       setSigs((s) => ({ ...s, coSignerSig }));
     } catch (e) { setErr(signErr(e)); }
     finally { setBusy(null); }
@@ -104,10 +119,11 @@ export function SafeSigner() {
   }, [prep, ready, sigs, refresh]);
 
   const toggle = useCallback(async (to: "hijack" | "restore") => {
-    setBusy(to); setErr(null); setResult(null); resetFlow();
+    // Keep any pending payout + collected signatures: the demo is "two valid approvals, still refused".
+    setBusy(to); setErr(null); setResult(null);
     try { await fetch(`/api/defense/safe/${to === "hijack" ? "hijack" : "reset"}`, { method: "POST" }); await refresh(); }
     finally { setBusy(null); }
-  }, [refresh, resetFlow]);
+  }, [refresh]);
 
   const SignerRow = ({ label, who, addr, done, isConnectedSigner, onSign, busyKey, hint }: {
     label: string; who: string; addr: string; done: boolean; isConnectedSigner: boolean;
