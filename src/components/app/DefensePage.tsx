@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ShieldCheck, RotateCcw } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
@@ -131,7 +131,7 @@ export function DefensePage() {
   const defense = useRef({ handle, finish });
   defense.current = { handle, finish };
 
-  const reset = useCallback(() => { setNotes([]); setTrace(emptyTrace); setUsdc(null); }, []);
+  const reset = useCallback(() => { setNotes([]); setTrace(emptyTrace); }, []);
 
   // fetch + stream reader (not EventSource: EventSource auto-reconnects on stream close, which would
   // silently kick off a second run). One run at a time; aborting the fetch tells the server to stop.
@@ -178,13 +178,22 @@ export function DefensePage() {
   // server-driven in that case, so gate every wallet-connected block on the provider being present.
   const walletReady = wallet != null;
 
+  // Show the vault's real balance immediately, before any run — the state endpoints read the live
+  // tenant. Refresh on mount, on a network change, and after a run finishes (not mid-run, where the
+  // step events drive the number).
+  const loadVaultBalance = useCallback(() => {
+    const url = isWhitechain ? "/api/defense/state" : "/api/defense/safe/state";
+    fetch(url).then((r) => r.json()).then((s) => { if (s?.ok && s.vaultUSDC != null) setUsdc(num(s.vaultUSDC)); }).catch(() => {});
+  }, [isWhitechain]);
+  useEffect(() => { if (!running) loadVaultBalance(); }, [loadVaultBalance, running]);
+
   return (
     <>
       <AppNav chain={chain} />
       <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pb-20">
         <header className="flex flex-wrap items-end gap-x-10 gap-y-6 pt-10 pb-8 border-b border-bn-line mb-8">
           <div className="flex-1 min-w-[18rem]">
-            <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">Defense</h1>
+            <h1 className="font-serif font-normal text-[clamp(2.2rem,4vw,3.2rem)] leading-none text-bn-ink m-0">With Chainwall</h1>
             <p className="text-[16px] leading-relaxed text-bn-ink-2 mt-4 mb-0 max-w-[42rem]">
               The same stolen-key trick, aimed at money kept in a Chainwall vault instead of a plain wallet. The vault checks
               who is asking before it moves anything, so when a signer has been taken over, it says no.
