@@ -64,21 +64,14 @@ export function DefenseSigner() {
         <Wallet className="h-4 w-4 text-bn-ink-2" />
         <h2 className="font-serif font-normal text-[clamp(1.3rem,2vw,1.6rem)] text-bn-ink m-0">Sign it yourself</h2>
         <div className="ml-auto">
-          {!wallet ? <span className="text-[12.5px] text-bn-muted">wallet connect unavailable</span>
-            : !wallet.connected ? (
-              <button onClick={wallet.login} disabled={!wallet.ready}
-                className="rounded-chip border border-bn-line h-9 px-3 text-[13px] text-bn-ink hover:bg-bn-paper-2 inline-flex items-center gap-1.5 disabled:opacity-50">
-                <Wallet className="h-3.5 w-3.5" /> Connect operator wallet
-              </button>
-            ) : wallet.wrongChain ? (
-              <button onClick={wallet.switchChain} className="rounded-chip border border-bn-amber/50 h-9 px-3 text-[13px] text-bn-amber">Switch to Whitechain</button>
-            ) : (
-              <span className="inline-flex items-center gap-2 text-[12.5px] text-bn-muted">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOperator ? "bg-bn-seal" : "bg-bn-amber"}`} />
-                {shortAddr(wallet.address)}
-                <button onClick={wallet.logout} className="text-bn-ink-2 hover:text-bn-ink underline underline-offset-2">Disconnect</button>
-              </span>
-            )}
+          {!wallet || !wallet.connected ? (
+            <span className="text-[12.5px] text-bn-muted">Connect your wallet from the top bar</span>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-[12.5px] text-bn-muted">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${wallet.wrongChain ? "bg-bn-amber-glow" : isOperator ? "bg-bn-seal" : "bg-bn-amber-glow"}`} />
+              {shortAddr(wallet.address)}
+            </span>
+          )}
         </div>
       </div>
       <p className="text-[14px] leading-relaxed text-bn-ink-2 mt-2 mb-5 max-w-[46rem]">
@@ -96,7 +89,7 @@ export function DefenseSigner() {
         <div className="grid gap-4 sm:grid-cols-[1fr_minmax(0,320px)] items-start">
           <div className="flex flex-col gap-3">
             <button onClick={signPayout} disabled={busy !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-chip bg-bn-ink text-bn-paper h-11 px-5 text-[14px] font-semibold disabled:opacity-50">
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-bn-ink text-bn-paper h-11 px-5 text-[14px] font-semibold disabled:opacity-50">
               {busy === "sign" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
               Sign &amp; send a 1,000 USDC payout
             </button>
@@ -135,12 +128,12 @@ export function DefenseSigner() {
             <div className="mt-3">
               {!state?.delegated ? (
                 <button onClick={() => toggle("hijack")} disabled={busy !== null}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-chip border border-bn-ember-glow/50 text-bn-ember-ink h-9 text-[13px] font-medium hover:bg-bn-ember/[0.08] disabled:opacity-50">
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-bn-ember-glow/50 text-bn-ember-ink h-9 text-[13px] font-medium hover:bg-bn-ember/[0.08] disabled:opacity-50">
                   {busy === "hijack" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Skull className="h-4 w-4" />} Hijack my account (EIP-7702)
                 </button>
               ) : (
                 <button onClick={() => toggle("restore")} disabled={busy !== null}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-chip border border-bn-line text-bn-ink-2 h-9 text-[13px] font-medium hover:text-bn-ink disabled:opacity-50">
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-bn-line text-bn-ink-2 h-9 text-[13px] font-medium hover:text-bn-ink disabled:opacity-50">
                   {busy === "restore" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />} Restore clean key
                 </button>
               )}
