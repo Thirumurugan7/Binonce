@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, RotateCcw, ArrowDownToLine } from "lucide-react";
+import { Play, RotateCcw, ArrowDownToLine, ArrowRight } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
 import { Terminal } from "./Terminal";
@@ -385,6 +385,29 @@ export function AttackPage() {
             <RunSummary phase={phase} signed={trace.nonces.signedUpto} txs={(trace.delegateTx ? 1 : 0) + (trace.sweepTx ? 1 : 0)} moved={stolen} elapsed={elapsed} />
           </aside>
         </div>
+
+        {/* The payoff hand-off: once the drain completes, send the viewer to the same attack, refused. */}
+        {finished && (
+          <section aria-label="What stops this" className="mt-10">
+            <div className="relative overflow-hidden rounded-panel bg-bn-night text-bn-fog border border-bn-night-line px-6 py-7 sm:px-9 sm:py-8 flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-2 text-[11.5px] uppercase tracking-[0.12em] text-bn-fog-2 mb-2.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-bn-ember-glow" aria-hidden /> Drain complete
+                </div>
+                <h2 className="font-serif font-normal text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-bn-fog m-0">
+                  That wallet had nothing protecting it.
+                </h2>
+                <p className="text-[15px] leading-relaxed text-bn-fog-2 mt-2.5 mb-0 max-w-[46rem]">
+                  The whole balance left in a single call, and the owner never signed for it. Put the same money behind a
+                  Chainwall vault and run the exact same attack — this time it gets refused.
+                </p>
+              </div>
+              <div className="flex-none">
+                <Button href="/defense" variant="inverse" size="lg" icon={<ArrowRight className="h-4 w-4" />}>See it with Chainwall</Button>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section aria-labelledby="log" className="mt-12">
           <div className="flex flex-wrap items-end gap-x-4 gap-y-1 mb-4">
