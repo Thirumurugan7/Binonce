@@ -173,6 +173,10 @@ export function DefensePage() {
   // defense is the guarded-Safe route (2-of-N Safe owners + a 7702-checked actor), so those don't apply.
   const isWhitechain = activeChainId === whitechainTestnet.id;
   const isSafeRoute = !isWhitechain;
+  // The wallet UIs (Privy/wagmi) only mount when a Privy app is configured; without it the context
+  // is null and those components would call wagmi hooks with no provider. The page still runs
+  // server-driven in that case, so gate every wallet-connected block on the provider being present.
+  const walletReady = wallet != null;
 
   return (
     <>
@@ -245,13 +249,13 @@ export function DefensePage() {
           </aside>
         </div>
 
-        {isWhitechain && (
+        {walletReady && isWhitechain && (
           <div className="mt-6">
             <DefenseSigner />
           </div>
         )}
 
-        {isSafeRoute && (
+        {walletReady && isSafeRoute && (
           <>
             <div className="mt-6 rounded-panel border border-bn-line bg-bn-card/40 px-5 py-4 text-[14px] leading-relaxed text-bn-ink-2">
               <b className="font-medium text-bn-ink">Guarded-Safe route.</b> On {chain} the payout is approved by a
@@ -266,7 +270,7 @@ export function DefensePage() {
       </main>
 
       {/* The full 2-of-2 multisig treasury console (the /demo page). Whitechain OKAccount demo only. */}
-      {isWhitechain && (
+      {walletReady && isWhitechain && (
         <section className="border-t border-bn-line mt-8">
           <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 pt-10 pb-2">
             <h2 className="font-serif font-normal text-[clamp(1.6rem,2.6vw,2.1rem)] text-bn-ink m-0">Multisig treasury console</h2>
