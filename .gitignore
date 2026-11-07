@@ -11,3 +11,5 @@ tsconfig.tsbuildinfo
 # Foundry/Solidity build output
 cache/
 out/
+
+.DS_Store

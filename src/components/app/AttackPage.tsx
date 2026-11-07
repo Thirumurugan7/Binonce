@@ -306,7 +306,7 @@ export function AttackPage() {
   const started = trace.lines.length > 0;
   const phase = phaseOf(trace.steps);
   const status = configured === false ? "Chain not set up" : running ? "Attack running…" : finished ? "Attack finished" : "Ready";
-  const taken = phase >= 3 || (phase === 0 && delegated);
+  const taken = phase >= 3;
   const balance = loaded || started ? tusd : null;
   const empty = ready && !running && !started && balance === 0;
   const pnl = baseline != null && balance != null ? { delta: balance - baseline, pct: baseline ? ((balance - baseline) / baseline) * 100 : 0 } : null;
@@ -322,7 +322,6 @@ export function AttackPage() {
     : phase === 3 ? { tone: "danger", title: "This wallet’s code changed", body: "It now runs an outside contract (0xef0100…). The owner was never asked to approve it." }
     : phase === 4 ? { tone: "danger", title: "Withdrawal in progress", body: "The whole tUSD balance is leaving, and the owner never signed for it." }
     : phase === 5 ? { tone: "danger", title: `${money(stolen)} tUSD left without approval`, body: "Two transactions, both sent by the attacker. The owner saw no prompt." }
-    : delegated ? { tone: "warn", title: "This wallet is still delegated from an earlier run", body: "Launch runs the whole thing again from the start." }
     : null;
   const hit = phase >= 4 ? { sym: "tUSD", tone: "drain" as const } : null;
 
