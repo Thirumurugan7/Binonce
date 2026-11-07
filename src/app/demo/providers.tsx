@@ -7,7 +7,7 @@ import { http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { whitechainTestnet } from "@/lib/demo-config";
 
-// Privy needs an appId from dashboard.privy.io — set NEXT_PUBLIC_PRIVY_APP_ID.
+// Privy needs an appId from dashboard.privy.io, set NEXT_PUBLIC_PRIVY_APP_ID.
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
 
 const wagmiConfig = createConfig({

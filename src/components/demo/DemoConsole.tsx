@@ -13,7 +13,7 @@ const PRESETS = [
 ];
 
 /**
- * The full 2-of-2 multisig treasury console. On /defense it renders `embedded` (no header — the top
+ * The full 2-of-2 multisig treasury console. On /defense it renders `embedded` (no header, the top
  * bar owns connect + network switch); the standalone /demo page shows its own header controls.
  */
 export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
@@ -76,12 +76,12 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
   const guide: { tone: "info" | "warn" | "ok"; text: string } =
     !connected ? { tone: "info", text: "Connect a treasury-owner wallet from the top bar to begin." }
     : wrongChain ? { tone: "warn", text: "Switch to Whitechain Testnet in the top bar." }
-    : !myApprover ? { tone: "warn", text: "This wallet isn’t a treasury owner — connect Owner or Approver 2 to sign." }
-    : result?.ok ? { tone: "ok", text: "Done — the payout executed and left the vault." }
+    : !myApprover ? { tone: "warn", text: "This wallet isn’t a treasury owner, connect Owner or Approver 2 to sign." }
+    : result?.ok ? { tone: "ok", text: "Done, the payout executed and left the vault." }
     : !opId ? { tone: "info", text: "Propose a transfer below to start the 2-of-2 approval." }
     : myCanApprove ? { tone: "info", text: `You’re ${myApprover.label}. Sign below to add your approval.` }
     : !bothApproved ? { tone: "info", text: "You’ve signed. Switch to the other owner’s wallet in the top bar to add the second signature." }
-    : { tone: "ok", text: "Both owners signed — run Execute to move the funds." };
+    : { tone: "ok", text: "Both owners signed, run Execute to move the funds." };
 
   async function propose() {
     setProposing(true); setResult(null); setOpId(null);
@@ -101,7 +101,7 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
       const r = await fetch("/api/demo/execute", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operationId: opId }) }).then((x) => x.json());
       setResult(r.ok ? { ok: true, txHash: r.txHash } : { ok: false, reason: r.reason || r.error });
       vaultBal.refetch(); recipBal.refetch();
-      if (r.ok) { setOpId(null); refreshPending(false); } // op closed — drop from the pending list
+      if (r.ok) { setOpId(null); refreshPending(false); } // op closed, drop from the pending list
     } finally { setExecuting(false); }
   }
 
@@ -145,13 +145,13 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
           {wrongChain && (
             <button onClick={() => switchChain({ chainId: whitechainTestnet.id })}
               className="rounded-panel border border-bn-amber-glow/40 bg-bn-amber-glow/[0.1] text-bn-amber px-4 py-3 text-sm font-medium text-left">
-              Wrong network — switch to Whitechain Testnet (1874) from the top bar, or tap here.
+              Wrong network, switch to Whitechain Testnet (1874) from the top bar, or tap here.
             </button>
           )}
 
-          {/* step 1 — propose */}
+          {/* step 1, propose */}
           <Section n={1} title="Propose a treasury transfer" done={!!opId}>
-            <p className="text-sm text-bn-ink-2 mb-3">A relayer proposes the transfer. It then needs <b className="font-medium text-bn-ink">both</b> treasury signers to approve — a real 2-of-2, enforced on-chain, plus a 1,000,000 USDC spending cap.</p>
+            <p className="text-sm text-bn-ink-2 mb-3">A relayer proposes the transfer. It then needs <b className="font-medium text-bn-ink">both</b> treasury signers to approve, a real 2-of-2, enforced on-chain, plus a 1,000,000 USDC spending cap.</p>
             <div className="flex flex-wrap gap-2 mb-3">
               {PRESETS.map((p) => (
                 <button key={p.amount} onClick={() => setAmount(p.amount)} disabled={!!opId}
@@ -167,11 +167,11 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
             {opId && <p className="mt-3 text-xs font-mono text-bn-muted">operation #{opId} created · awaiting 2 signatures</p>}
           </Section>
 
-          {/* step 2 — approvals */}
+          {/* step 2, approvals */}
           <Section n={2} title="Two wallets sign" done={bothApproved} muted={!opId}>
             {pending.length > 0 && (
               <div className="mb-3">
-                <div className="text-[11px] uppercase tracking-wide text-bn-muted mb-2">Open proposals — pick one to sign</div>
+                <div className="text-[11px] uppercase tracking-wide text-bn-muted mb-2">Open proposals, pick one to sign</div>
                 <div className="flex flex-wrap gap-2">
                   {pending.map((p) => (
                     <button key={p.operationId} onClick={() => { setOpId(p.operationId); setProposedAmount(p.amount); setResult(null); }}
@@ -210,7 +210,7 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
             {writeError && <p className="mt-2 text-xs text-bn-ember-ink">{(writeError as any).shortMessage || writeError.message}</p>}
           </Section>
 
-          {/* step 3 — execute */}
+          {/* step 3, execute */}
           <Section n={3} title="Execute" done={result?.ok === true} muted={!bothApproved}>
             <button onClick={execute} disabled={!bothApproved || executing}
               className="inline-flex items-center gap-2 rounded-full bg-bn-ink text-bn-paper px-4 h-10 text-sm font-semibold disabled:opacity-40">
@@ -218,13 +218,13 @@ export function DemoConsole({ embedded = false }: { embedded?: boolean } = {}) {
             </button>
             {result?.ok && (
               <div className="mt-3 rounded-panel border border-bn-seal/40 bg-bn-seal-glow/[0.06] p-3 text-sm">
-                <div className="flex items-center gap-2 text-bn-seal font-medium"><Check className="h-4 w-4" />Executed — {proposedAmount?.toLocaleString("en-US")} USDC moved from the vault</div>
+                <div className="flex items-center gap-2 text-bn-seal font-medium"><Check className="h-4 w-4" />Executed, {proposedAmount?.toLocaleString("en-US")} USDC moved from the vault</div>
                 {result.txHash && <a className="mt-1 inline-flex items-center gap-1 text-xs text-bn-muted hover:text-bn-ink font-mono" href={`${DEMO.explorer}/tx/${result.txHash}`} target="_blank" rel="noreferrer">{short(result.txHash)} <ExternalLink className="h-3 w-3" /></a>}
               </div>
             )}
             {result && !result.ok && (
               <div className="mt-3 rounded-panel border border-bn-ember-glow/40 bg-bn-ember/[0.06] p-3 text-sm">
-                <div className="flex items-center gap-2 text-bn-ember-ink font-medium"><Ban className="h-4 w-4" />Refused by policy — {result.reason === "ERR_01" ? "over the 1,000,000 USDC spending cap" : result.reason}</div>
+                <div className="flex items-center gap-2 text-bn-ember-ink font-medium"><Ban className="h-4 w-4" />Refused by policy, {result.reason === "ERR_01" ? "over the 1,000,000 USDC spending cap" : result.reason}</div>
                 <div className="mt-1 text-xs text-bn-ink-2">The 2-of-2 approvals were met, but the spending-cap program still blocked it. No funds moved.</div>
               </div>
             )}

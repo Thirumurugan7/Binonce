@@ -1,7 +1,7 @@
 # The attack (real, on-chain)
 
 This is **not** a scripted animation. "Launch attack" executes the Binance EIP-7702 drain on a
-real EVM — local anvil (Prague) by default, or Sepolia — and streams real tx hashes and blocks.
+real EVM, local anvil (Prague) by default, or Sepolia, and streams real tx hashes and blocks.
 Code: `src/lib/attack.ts` (run by `/api/run`). Chain selection: `src/lib/chain.ts`.
 
 ## Actors
@@ -13,7 +13,7 @@ Code: `src/lib/attack.ts` (run by `/api/run`). Chain selection: `src/lib/chain.t
 | **Attacker** | Fixed address (from setup) that receives the drain; the Sweeper's immutable `ATTACKER`. |
 | **Sweeper** | Deployed contract; once the victim is delegated to it, calling it drains the victim. |
 
-A fresh victim each run makes the demo repeatable — click "Launch attack" as many times as you like.
+A fresh victim each run makes the demo repeatable, click "Launch attack" as many times as you like.
 
 ## The flow (what actually happens on-chain)
 
@@ -21,14 +21,14 @@ A fresh victim each run makes the demo repeatable — click "Launch attack" as m
 2. **Sign 50 authorizations** at consecutive nonces (`start … start+49`), all delegating the
    victim to the sweeper.
 3. **Broadcast from the relayer.** One real type-4 transaction carries all 50. Broadcasting from
-   a *separate* account means the victim's nonce only advances via the authorization — like the
+   a *separate* account means the victim's nonce only advances via the authorization, like the
    real hack's separate broadcaster.
 4. **One nonce matches.** Verified on-chain: `getCode(victim)` now returns `0xef0100` + the
    sweeper address.
 5. **Drain.** Relayer calls `sweepToken(tUSD)` on the victim (now running sweeper code) → balance
    moves to the attacker. Confirmed by reading balances before/after.
 
-> The 50 is a nonce safety net to guarantee one lands — not 50 keys, not guessing.
+> The 50 is a nonce safety net to guarantee one lands, not 50 keys, not guessing.
 
 ## Proof it's real
 
@@ -44,7 +44,7 @@ Real delegation marker, real drain. The same code runs on Sepolia (`CHAIN_ID=111
 
 If the victim both signed and broadcast, the transaction itself would consume a nonce and muddy
 the authorization bookkeeping. A separate relayer keeps the victim's nonce advancing only through
-the applied authorization — matching the incident and keeping the flow clean.
+the applied authorization, matching the incident and keeping the flow clean.
 
 ## viem gotcha
 

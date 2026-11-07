@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { whitechainTestnet, sepoliaTestnet } from "@/lib/demo-config";
 import { DefenseWalletBridge } from "./wallet-context";
 
-// Same Privy/wagmi wiring as /demo — the connected wallet's network selects which tenant the run targets.
+// Same Privy/wagmi wiring as /demo, the connected wallet's network selects which tenant the run targets.
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
 
 const wagmiConfig = createConfig({

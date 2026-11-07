@@ -1,7 +1,7 @@
 // Granular server operations for the WALLET-DRIVEN /defense flow: the connected operator wallet
 // signs the DirectExecuteFromAccount typed data in the browser (Privy); these helpers build the
 // payload, relay the signed operation, and run the server-side attack (7702 delegation) + reads.
-// The signing key never lives here — only the relayer (gas) and the attacker's delegation of the
+// The signing key never lives here, only the relayer (gas) and the attacker's delegation of the
 // demo operator do. Mirrors the mechanism in defense-engine.ts (the no-wallet fallback run).
 import {
   createWalletClient, createPublicClient, http, defineChain, keccak256,

@@ -1,6 +1,6 @@
 # Docs
 
-Documentation for the ETHGlobal Mumbai project — a Binance EIP-7702 attack replay,
+Documentation for the ETHGlobal Mumbai project, a Binance EIP-7702 attack replay,
 defended by OKcontract Chainwall.
 
 > **The Blacklist** knows who the thieves are · **The Lock** keeps the door shut · **The Alarm** spots the break-in.
@@ -20,9 +20,9 @@ defended by OKcontract Chainwall.
 
 | Part | Built with | Partner track |
 |---|---|---|
-| 📕 The Blacklist | Arkiv (+ Swarm) | Arkiv — Mirror something Ethereum depends on |
-| 🔒 The Lock | OKcontract Chainwall | Ethereum Foundation — Best CROPS App |
-| 🚨 The Alarm | Chainlink CRE + LLM | Chainlink — Best workflow with CRE |
+| 📕 The Blacklist | Arkiv (+ Swarm) | Arkiv, Mirror something Ethereum depends on |
+| 🔒 The Lock | OKcontract Chainwall | Ethereum Foundation, Best CROPS App |
+| 🚨 The Alarm | Chainlink CRE + LLM | Chainlink, Best workflow with CRE |
 
 ## Where to start
 

@@ -27,7 +27,7 @@ export interface OperatorWallet {
 
 const Ctx = createContext<OperatorWallet | null>(null);
 
-/** Null when Privy isn't configured — the page then runs server-driven. */
+/** Null when Privy isn't configured, the page then runs server-driven. */
 export const useOperatorWallet = () => useContext(Ctx);
 
 /** Lives inside PrivyProvider; exposes the connected operator wallet to the page via context. */
@@ -41,7 +41,7 @@ export function DefenseWalletBridge({ children }: { children: React.ReactNode })
 
   const value = useMemo<OperatorWallet>(() => ({
     ready, connected, address, chainId, wrongChain, login, logout,
-    // Switch to any supported chain — Whitechain 1874 by default, Sepolia 11155111 from the network menu.
+    // Switch to any supported chain, Whitechain 1874 by default, Sepolia 11155111 from the network menu.
     switchChain: (id = 1874) => switchChain({ chainId: id }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     signTypedData: (td) => signTypedDataAsync(td as any),

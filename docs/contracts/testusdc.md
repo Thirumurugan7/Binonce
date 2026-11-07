@@ -7,7 +7,7 @@ Source: [`contracts/whitechain/TestUSDC.sol`](../../contracts/whitechain/TestUSD
 
 ## Why it exists
 
-Whitechain testnet has **no official stablecoin** — Circle/Tether don't deploy to testnets. So we
+Whitechain testnet has **no official stablecoin**, Circle/Tether don't deploy to testnets. So we
 ship our own: a clean, source-verified `USDC` with an open mint, owned (deployed) by our tenant owner
 rather than the leftover offense `tUSD`. It gives the Chainwall policy demo a real ERC-20 to govern.
 
@@ -29,7 +29,7 @@ The contract source is **verified on the Whitechain Blockscout explorer** (`Pass
 
 | Function | Notes |
 |---|---|
-| `mint(address to, uint256 value)` | **Open mint** — anyone can mint. Test token only. |
+| `mint(address to, uint256 value)` | **Open mint**, anyone can mint. Test token only. |
 | `transfer`, `approve`, `transferFrom` | Standard ERC-20 (`transfer`/`transferFrom` return `bool`). |
 | `balanceOf`, `allowance`, `totalSupply`, `name`, `symbol`, `decimals` | Standard views. |
 

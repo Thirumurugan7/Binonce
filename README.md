@@ -1,20 +1,20 @@
-# Chainwall × Binance EIP-7702 — Attack & Defense Demo
+# Chainwall × Binance EIP-7702, Attack & Defense Demo
 
 <img src="public/binonce-loader.svg" width="56" alt="Binonce" />
 
 **Binonce** is a **Next.js + Tailwind** app that runs **both halves** of the EIP-7702 story on-chain. Each app
 page shows what the wallet's owner sees next to what the chain actually records:
 
-- **`/` — the landing page.** What Binonce is, how the drain works, and where each part stands.
+- **`/`, the landing page.** What Binonce is, how the drain works, and where each part stands.
   Light and dark themes throughout; see [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
-- **`/attack` — the attack.** Executes the real Oct 29 2026 Binance EIP-7702 hot-wallet drain.
-- **`/defense` — the defense.** Runs the real **Chainwall** (The Lock) protocol that stops it.
+- **`/attack`, the attack.** Executes the real Oct 29 2026 Binance EIP-7702 hot-wallet drain.
+- **`/defense`, the defense.** Runs the real **Chainwall** (The Lock) protocol that stops it.
 
 This is **not** a UI animation. On the attack page, "Launch attack" deploys real contracts, signs
 50 real EIP-7702 authorizations, broadcasts a real type-4 transaction, delegates the victim account
 to a sweeper (`0xef0100…`), and drains it. On the defense page, "Run defense" stands up a real
 Chainwall tenant, funds a governed vault, runs a genuine 2-of-2 payout, then has an attacker try the
-same 7702 hijack — and watches the on-chain guard **refuse** it. Both stream real tx hashes and
+same 7702 hijack, and watches the on-chain guard **refuse** it. Both stream real tx hashes and
 block numbers as they go.
 
 ## Run it (local, no gas, no faucet)
@@ -64,7 +64,7 @@ CHAINWALL_DIR=/path/to/chainwall           # repo holding local/e2e_stream.py
 ```
 
 `src/app/api/defense-config` reports readiness; `/defense` only enables the button when the fork and
-factory are live. The fork prunes old state after ~2h ("missing trie node") — re-run `up.sh` to
+factory are live. The fork prunes old state after ~2h ("missing trie node"), re-run `up.sh` to
 refresh it.
 
 > Both offense and defense can also share **one** chain: point the attack's `CHAIN_RPC`/`CHAIN_ID` at
@@ -76,10 +76,10 @@ refresh it.
 The app has two independent flows. Both are real on-chain runs streamed to the UI over SSE; neither
 is scripted animation.
 
-### ⚔️ Offense — the attack (`/attack`)
+### ⚔️ Offense, the attack (`/attack`)
 
 Why it works: a delegated EOA's code is exactly 23 bytes, `0xef0100 ‖ delegate`. A single valid
-signature at the account's current nonce is enough to install that delegation — no transaction from
+signature at the account's current nonce is enough to install that delegation, no transaction from
 the victim, no gas from the victim, no approval dialog. Whoever holds the key can make the wallet
 *become* a contract that drains itself.
 
@@ -87,7 +87,7 @@ the victim, no gas from the victim, no approval dialog. Whoever holds the key ca
 Launch attack ──► /api/run (SSE) ──► src/lib/attack.ts
   1 Sign      fresh victim ← mint 2,500,000 tUSD (relayer pays gas)
               victim signs 50 authorizations at consecutive nonces → delegate = Sweeper
-              (signatures only — nothing on-chain yet, no gas)
+              (signatures only, nothing on-chain yet, no gas)
   2 Broadcast relayer wraps all 50 into ONE type-4 tx and broadcasts it (relayer pays gas)
   3 Hijack    the one authorization at the victim's current nonce takes effect
               → victim code = 0xef0100 + sweeper   (verified live via eth_getCode)
@@ -97,13 +97,13 @@ Launch attack ──► /api/run (SSE) ──► src/lib/attack.ts
 ```
 
 The other 49 authorizations are the attacker's safety net: only the one matching the current nonce
-lands, the rest guarantee a hit if the nonce advances before broadcast. No anvil cheat codes — real
+lands, the rest guarantee a hit if the nonce advances before broadcast. No anvil cheat codes, real
 deploy, open-mint token, relayer-paid gas; so it runs unchanged on a Prague/Pectra testnet (see
 *Run it on Sepolia*).
 
-### 🛡️ Defense — Chainwall / The Lock (`/defense`)
+### 🛡️ Defense, Chainwall / The Lock (`/defense`)
 
-The fix is not to detect bad signatures — a forged signature can look perfectly valid. The fix is to
+The fix is not to detect bad signatures, a forged signature can look perfectly valid. The fix is to
 refuse to act for a signer whose account has *become delegated code*. Chainwall puts the treasury
 behind an on-chain control plane (factory → registry of users/groups/policies → execution engine →
 governed vault) and the engine checks every actor before it executes.
@@ -127,19 +127,19 @@ Run defense ──► /api/defend (SSE) ──► src/lib/defense.ts ──► s
 **Core primitive:** `Delegation7702.sol` detects the 23-byte `0xef0100 ‖ delegate` designator
 (`isDelegated`, `delegateOf`); the Interact engine reverts `ActorDelegated(actor, delegate)` for any
 delegated signer that governance has not explicitly allow-listed. The forged signature never gets a
-chance to be checked — the actor is rejected first.
+chance to be checked, the actor is rejected first.
 
 > **Note on the demo rig:** the defense flow forks Arbitrum One to borrow real mainnet USDC and uses
 > anvil cheats (`anvil_setStorageAt` / `anvil_setBalance`) to fund the vault and signers instantly,
-> so it is **fork-only** as written. The security property itself is chain-agnostic — deploy
+> so it is **fork-only** as written. The security property itself is chain-agnostic, deploy
 > Chainwall + a real test token on any EVM chain and the `ActorDelegated` guard behaves identically.
 
 ## Layout
 
 ```
 src/app/            / (landing), /attack, /defense (Chainwall), styleguide
-                    api/run + api/config          — attack SSE + offense config
-                    api/defend + api/defense-config — defense SSE + fork/factory readiness
+                    api/run + api/config         , attack SSE + offense config
+                    api/defend + api/defense-config, defense SSE + fork/factory readiness
                     api/reset, api/balance, api/mint, api/arkiv/activity
 src/components/     brand/   design-system primitives (Button, Tag, Mark, ThemeToggle, IntroLoader…)
                     landing/ landing-page sections and explainers
@@ -172,11 +172,11 @@ A public, wallet-signed registry of EIP-7702 delegate contracts and delegations,
 importer **writes** it.
 
 - **Writer wallet (owns all entities):** `0x7264fB117ce777888B1bD2eF66ED0CF4CA14B4a9`
-- **Re-runnable importer:** `npm run import` — scans real Ethereum-mainnet EIP-7702 delegations,
+- **Re-runnable importer:** `npm run import`, scans real Ethereum-mainnet EIP-7702 delegations,
   classifies each delegate from its bytecode + reuse, and writes `chainwall.delegate` entities.
   Tunables: `SCAN_BLOCKS`, `SCAN_FROM`/`SCAN_TO`, `MAX_DELEGATES`, `SCAN_RPC`.
 - **How entries are labelled:** deterministic bytecode/reuse heuristics (no LLM). See
-  [`docs/attack/detection.md`](docs/attack/detection.md) — tiny no-owner-check sweeper → `suspicious`,
+  [`docs/attack/detection.md`](docs/attack/detection.md), tiny no-owner-check sweeper → `suspicious`,
   reused by ≥3 wallets → `likely-thief`, EIP-1167 proxies and large smart-account impls → `unknown`,
   `confirmed-thief` only hand-added with a verified source. We never assert "thief" from a heuristic.
 - **Config:** reads need nothing: the app always shows the public registry owned by
@@ -189,7 +189,7 @@ importer **writes** it.
 Reads our live registry from Arkiv (needs your own free access key):
 
 ```ts
-// bun query.ts   — after: npm i @arkiv-network/sdk viem ; export ARKIV_ACCESS_KEY=...
+// bun query.ts  , after: npm i @arkiv-network/sdk viem ; export ARKIV_ACCESS_KEY=...
 import { createPublicClient } from "@arkiv-network/sdk";
 import { rabdi } from "@arkiv-network/sdk/chains";
 import { defineSchema, str, addr } from "@arkiv-network/sdk/schema";
@@ -211,16 +211,16 @@ for (const e of entities) console.log(e.label.value, e.address.value, `${e.deleg
 
 ### Arkiv submission docs
 
-- [`arkiv/schema.md`](arkiv/schema.md) — entities, queried fields, owners, expiry
-- [`arkiv/data-quality.md`](arkiv/data-quality.md) — freshness, labelling, example filters
-- [`arkiv/why-arkiv.md`](arkiv/why-arkiv.md) — vs a plain database
-- [`arkiv/reach.md`](arkiv/reach.md) — who uses it
-- [`arkiv/friction.md`](arkiv/friction.md) — honest build feedback
+- [`arkiv/schema.md`](arkiv/schema.md), entities, queried fields, owners, expiry
+- [`arkiv/data-quality.md`](arkiv/data-quality.md), freshness, labelling, example filters
+- [`arkiv/why-arkiv.md`](arkiv/why-arkiv.md), vs a plain database
+- [`arkiv/reach.md`](arkiv/reach.md), who uses it
+- [`arkiv/friction.md`](arkiv/friction.md), honest build feedback
 
 ## License & data
 
 Code is MIT; the registry **data** is public-domain (CC0) and derived from public chain data —
-**not Sourcify** — so it may be freely republished. See [`LICENSE`](LICENSE).
+**not Sourcify**, so it may be freely republished. See [`LICENSE`](LICENSE).
 
 ## AI-usage disclosure
 

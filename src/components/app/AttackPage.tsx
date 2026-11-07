@@ -315,7 +315,7 @@ export function AttackPage() {
     { sym: "ETH", name: "Ethereum", amt: eth, price: null as number | null, priceNote: "gas only" },
   ];
 
-  // What the exchange's own screen can tell at each moment. Signing is invisible from here — that's the point.
+  // What the exchange's own screen can tell at each moment. Signing is invisible from here, that's the point.
   const alert: PortfolioAlert | null =
     phase === 1 ? { tone: "info", title: "Nothing looks wrong yet", body: "The attacker is signing with the leaked key, offline. No exchange screen can see this step." }
     : phase === 2 ? { tone: "warn", title: "A transaction for this wallet, sent by someone else", body: "It carries an authorization signed with this wallet’s own key." }
@@ -350,7 +350,7 @@ export function AttackPage() {
                     {running ? "Running…" : finished ? "Run again" : "Launch attack"}
                   </Button>}
             </div>
-            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty — deposit test tUSD first" : `${status} · test tokens only`}</span>
+            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty, deposit test tUSD first" : `${status} · test tokens only`}</span>
           </div>
         </div>
 
@@ -399,7 +399,7 @@ export function AttackPage() {
                 </h2>
                 <p className="text-[15px] leading-relaxed text-bn-fog-2 mt-2.5 mb-0 max-w-[46rem]">
                   The whole balance left in a single call, and the owner never signed for it. Put the same money behind a
-                  Chainwall vault and run the exact same attack — this time it gets refused.
+                  Chainwall vault and run the exact same attack, this time it gets refused.
                 </p>
               </div>
               <div className="flex-none">

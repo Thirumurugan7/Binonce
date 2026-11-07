@@ -11,7 +11,7 @@ const shortChain = (name: string) => name.replace(/\s*Testnet$/i, "");
 /**
  * Shared wallet control for the app top bar. One connect button across /attack and /defense, with a
  * menu to switch between the supported networks (Whitechain ↔ Sepolia) and disconnect. Renders
- * nothing when Privy isn't configured — the pages then run server-driven.
+ * nothing when Privy isn't configured, the pages then run server-driven.
  */
 export function WalletMenu() {
   const wallet = useOperatorWallet();

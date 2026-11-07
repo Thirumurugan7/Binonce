@@ -1,5 +1,5 @@
 /**
- * Arkiv (Golem Base) integration — The Blacklist.
+ * Arkiv (Golem Base) integration, The Blacklist.
  *
  * Writes a permissionless, wallet-signed registry of EIP-7702 activity to the
  * Arkiv Rabdi testnet: every attack (a `Delegation` + the sweeper `Delegate`
@@ -7,7 +7,7 @@
  *
  * Everything here is BEST-EFFORT and fully guarded: if ARKIV_ACCESS_KEY /
  * ARKIV_PK are not set, or the network is unreachable, writes become no-ops and
- * reads return empty — the app keeps working. Only addr/str/dec value types are
+ * reads return empty, the app keeps working. Only addr/str/dec value types are
  * used (the well-documented ones) so records are robust across SDK point releases.
  */
 import { http, type Hex } from "viem";

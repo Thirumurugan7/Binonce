@@ -13,7 +13,7 @@
 | `TUSD_ADDR` | deployed TestUSD |
 | `SWEEPER_ADDR` | deployed Sweeper (its `ATTACKER` = `ATTACKER_ADDR`) |
 
-The victim is **not** in `.env` — a fresh one is generated per attack run so the demo repeats.
+The victim is **not** in `.env`, a fresh one is generated per attack run so the demo repeats.
 
 ### To target Sepolia, set these *before* `npm run setup`:
 
@@ -36,7 +36,7 @@ export RELAYER_PK=0x...     # funded with Sepolia ETH
 ## Safety notes
 
 - Local anvil + test tokens have no value. The contracts carry "do not deploy to mainnet" warnings.
-- `.env` is gitignored. On local, `RELAYER_PK` is anvil's well-known test key — never reuse it with real funds.
+- `.env` is gitignored. On local, `RELAYER_PK` is anvil's well-known test key, never reuse it with real funds.
 - Only the relayer needs gas; the per-run victim needs none (the relayer broadcasts the delegation).
 
 ## How a run executes
@@ -44,4 +44,4 @@ export RELAYER_PK=0x...     # funded with Sepolia ETH
 `/api/run` → `src/lib/attack.ts`:
 fresh victim → mint 2.5M tUSD → sign 50 authorizations → broadcast type-4 tx → verify `0xef0100`
 delegation → `sweepToken` → drained. Real tx hashes/blocks stream to the UI. Chain comes from
-`src/lib/chain.ts` (env-driven). No mock path — it's the real attack every time.
+`src/lib/chain.ts` (env-driven). No mock path, it's the real attack every time.

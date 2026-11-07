@@ -20,7 +20,7 @@ Mechanically:
 
 ## Why it's dangerous when a key leaks
 
-7702 doesn't create the danger — a leaked key was always fatal — but it gives an attacker a
+7702 doesn't create the danger, a leaked key was always fatal, but it gives an attacker a
 clean "sweep button": delegate the victim to a drainer contract, then call it. Wintermute
 reported that most early 7702 delegations pointed to malicious draining contracts.
 
@@ -28,7 +28,7 @@ reported that most early 7702 delegations pointed to malicious draining contract
 
 An authorization only applies if its `nonce` matches the account's **current** nonce when the
 delegation transaction lands. To guarantee a hit without knowing the exact nonce at mining
-time, an attacker signs **many authorizations at consecutive nonces** — the Binance attacker
+time, an attacker signs **many authorizations at consecutive nonces**, the Binance attacker
 used **50**. Exactly one matches and takes effect; the other 49 are a safety net.
 
 > It is NOT 50 keys being guessed. It's one stolen key signing 50 nonces.
@@ -43,6 +43,6 @@ This is exactly what [The Blacklist](../tracks/arkiv-blacklist.md) and [The Alar
 
 ## Related
 
-- [binance-incident.md](./binance-incident.md) — the real attack we replay
-- [simulator.md](./simulator.md) — how our Sepolia replay works
-- [../tracks/ef-lock.md](../tracks/ef-lock.md) — EIP-8141, the future-proof defense
+- [binance-incident.md](./binance-incident.md), the real attack we replay
+- [simulator.md](./simulator.md), how our Sepolia replay works
+- [../tracks/ef-lock.md](../tracks/ef-lock.md), EIP-8141, the future-proof defense

@@ -51,14 +51,14 @@ amber `#E4AC46`, info `#809EFF`, night `#08090A`.
 
 | Token | Hex | Role | Contrast |
 |---|---|---|---|
-| `bn-paper` | `#F3EFE6` | page background | — |
-| `bn-paper-2` | `#ECE7DB` | bands (facts, two views) | — |
-| `bn-line` | `#D8D1C2` | hairlines on paper | — |
+| `bn-paper` | `#F3EFE6` | page background |, |
+| `bn-paper-2` | `#ECE7DB` | bands (facts, two views) |, |
+| `bn-line` | `#D8D1C2` | hairlines on paper |, |
 | `bn-ink` | `#15140F` | headings, primary button | 16.1:1 on paper |
 | `bn-ink-2` | `#3A3730` | body text | 10.3:1 |
 | `bn-muted` | `#686358` | metadata, eyebrows | 5.2:1 |
-| `bn-night` / `-2` | `#0E0F11` / `#16181B` | chain-world panels | — |
-| `bn-night-line` | `#282B30` | hairlines on night | — |
+| `bn-night` / `-2` | `#0E0F11` / `#16181B` | chain-world panels |, |
+| `bn-night-line` | `#282B30` | hairlines on night |, |
 | `bn-fog` | `#E8E4DA` | text on night | 15.1:1 |
 | `bn-fog-2` | `#9C988D` | muted on night | 6.7:1 |
 | `bn-ember` | `#E5431F` | **brand signal**: fills, large display text only | 3.5:1 (large text) |

@@ -8,7 +8,7 @@ import "./globals.css";
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Binonce — A valid signature is not an approved action", template: "%s" },
+  title: { default: "Binonce, A valid signature is not an approved action", template: "%s" },
   description:
     "Binonce replays EIP-7702 wallet drains on a real chain, step by step, starting with the October 2026 Binance hot-wallet drain, and records every sweeper it sees to a public on-chain blacklist.",
 };

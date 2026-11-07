@@ -28,7 +28,7 @@ export function getConfig(): RunConfig {
   const tusd = process.env.TUSD_ADDR as `0x${string}` | undefined;
   const sweeper = process.env.SWEEPER_ADDR as `0x${string}` | undefined;
   if (!victimPk || !attacker || !tusd || !sweeper) {
-    throw new Error("Not configured — run `npm run setup` first.");
+    throw new Error("Not configured, run `npm run setup` first.");
   }
   return { victimPk, victimAddr: privateKeyToAccount(victimPk).address, attacker, tusd, sweeper };
 }

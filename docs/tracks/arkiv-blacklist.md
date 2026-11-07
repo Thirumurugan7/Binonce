@@ -1,4 +1,4 @@
-# 📕 The Blacklist — Arkiv
+# 📕 The Blacklist, Arkiv
 
 **Track:** Mirror something Ethereum depends on · **Prize:** 1st $3,000 · 2nd $1,000 · Swarm bonus +$500 (stacks, no extra slot)
 
@@ -55,11 +55,11 @@ Never label `thief` without proof. See [../attack/detection.md](../attack/detect
 - [ ] Re-runnable import script in the repo
 - [ ] Writes to Arkiv current testnet via `@arkiv-network/sdk` or JSON-RPC; a user-facing feature **reads** from Arkiv
 - [ ] README: writer wallet address(es) + one runnable query
-- [ ] `/arkiv/schema.md` — entities, queried fields, owners, expiry
-- [ ] `/arkiv/friction.md` — honest feedback (write it **as you build**)
-- [ ] `/arkiv/reach.md` — who uses it: wallets warning before signing, exchanges, researchers, The Alarm
-- [ ] `/arkiv/why-arkiv.md` — vs Postgres: permissionless reads, can't be quietly taken down, wallet-signed provenance
-- [ ] `/arkiv/data-quality.md` — how it stays fresh, labeling, example filters
+- [ ] `/arkiv/schema.md`, entities, queried fields, owners, expiry
+- [ ] `/arkiv/friction.md`, honest feedback (write it **as you build**)
+- [ ] `/arkiv/reach.md`, who uses it: wallets warning before signing, exchanges, researchers, The Alarm
+- [ ] `/arkiv/why-arkiv.md`, vs Postgres: permissionless reads, can't be quietly taken down, wallet-signed provenance
+- [ ] `/arkiv/data-quality.md`, how it stays fresh, labeling, example filters
 - [ ] Public repo, open-source license, AI-usage disclosure
 
 ## Swarm bonus (+$500)

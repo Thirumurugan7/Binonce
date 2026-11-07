@@ -145,7 +145,7 @@ export async function prepareSafeOp() {
  */
 export async function submitSafeOp(input: { sessionId: string; actorSig: string; coSignerSig: string; actorOwnerSig: string }) {
   const s = sessions.get(input.sessionId);
-  if (!s) return { ok: false, reason: "session expired — prepare again" };
+  if (!s) return { ok: false, reason: "session expired, prepare again" };
   const { cfg, S, cw, cast } = ctx();
   const dir = s.dir;
   const f = (n: string) => path.join(dir, `${n}.json`);

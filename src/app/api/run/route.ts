@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   if (activeRun) {
     const busy = new ReadableStream({
       start(c) {
-        c.enqueue(frame({ step: "fatal", msg: "An attack is already running — wait for it to finish, then try again." }));
+        c.enqueue(frame({ step: "fatal", msg: "An attack is already running, wait for it to finish, then try again." }));
         c.enqueue(frame({ step: "closed" }));
         c.close();
       },

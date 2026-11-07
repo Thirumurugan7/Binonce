@@ -132,7 +132,7 @@ export function MintModal({
                   </div>
 
                   {error && <div className="text-[12.5px] text-bn-ember-ink bg-bn-ember/[0.08] border border-bn-ember/30 rounded-data px-3 py-2.5">{error}</div>}
-                  {!arkiv && <div className="text-[11.5px] text-bn-muted">Arkiv not configured — this mint runs on-chain but won&apos;t be recorded to the registry yet.</div>}
+                  {!arkiv && <div className="text-[11.5px] text-bn-muted">Arkiv not configured, this mint runs on-chain but won&apos;t be recorded to the registry yet.</div>}
 
                   <button
                     onClick={submit} disabled={!valid || state === "minting"}

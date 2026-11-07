@@ -1,7 +1,7 @@
 # The Binance incident (Oct 29 2026)
 
 The attack this project replays. Figures below are from public post-mortems (Blockaid,
-Fireblocks, TRM Labs, TechFlow) and vary slightly between sources — cite the source when you quote a number.
+Fireblocks, TRM Labs, TechFlow) and vary slightly between sources, cite the source when you quote a number.
 
 ## What happened
 
@@ -21,8 +21,8 @@ Fireblocks, TRM Labs, TechFlow) and vary slightly between sources — cite the s
 
 ## The lesson for the pitch
 
-Security engineers noted that 7702 wasn't strictly necessary — a leaked key can drain an EOA
-anyway — but it gave "a handy sweep button." The real lesson:
+Security engineers noted that 7702 wasn't strictly necessary, a leaked key can drain an EOA
+anyway, but it gave "a handy sweep button." The real lesson:
 
 > Funds in a plain EOA are only as safe as the key. Put them behind a policy that enforces
 > *what* can happen (The Lock), so a stolen key alone isn't enough.
@@ -31,10 +31,10 @@ anyway — but it gave "a handy sweep button." The real lesson:
 
 x402 (agent payments) is now under the Linux Foundation; AWS and Google ship agent-payment
 controls. The industry is actively building "spending limits + approvals for autonomous
-actors" — which is the same shape as The Lock, and proof the problem is real.
+actors", which is the same shape as The Lock, and proof the problem is real.
 
 ## Sources to cite
 
-- TechFlow — Binance attack timeline & breach sequence
-- Blockaid / Fireblocks — EIP-7702 attack-chain analysis
-- Cointelegraph — EIP-7702's role in the hack
+- TechFlow, Binance attack timeline & breach sequence
+- Blockaid / Fireblocks, EIP-7702 attack-chain analysis
+- Cointelegraph, EIP-7702's role in the hack

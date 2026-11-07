@@ -3,7 +3,7 @@
 //
 //   payout : a clean operator's EIP-712 authorization -> directExecuteFromAccount executes a transfer
 //   hijack : the operator is 7702-delegated to the sweeper
-//   refuse : the same authorization is refused — isValidSignature is now answered by the sweeper
+//   refuse : the same authorization is refused, isValidSignature is now answered by the sweeper
 //
 // Server-only: reads the operator/relayer keys and talks to the fork RPC.
 import {
@@ -44,7 +44,7 @@ const PACE = Number(process.env.DEFENSE_PACE_MS ?? 700); // pause between phases
 
 export async function* runDefense(signal?: AbortSignal, chainId?: number): AsyncGenerator<DefenseEvent> {
   const t = () => Date.now();
-  // Paces the walkthrough; also the abort point — if the browser disconnected, stop before the next tx.
+  // Paces the walkthrough; also the abort point, if the browser disconnected, stop before the next tx.
   const pause = () => new Promise<void>((resolve, reject) => {
     if (signal?.aborted) return reject(new DOMException("aborted", "AbortError"));
     const id = setTimeout(resolve, PACE);
@@ -144,7 +144,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   }
 
   // expectRefusal=false (legit): retry on InvalidActorSignature, which can come from public-RPC
-  //   nonce lag on a clean operator. expectRefusal=true (hijacked): fail immediately — that IS the point.
+  //   nonce lag on a clean operator. expectRefusal=true (hijacked): fail immediately, that IS the point.
   const reason = (e: unknown): string => {
     const msg = e instanceof Error ? e.message : String(e);
     const sel = (msg.match(/0x[0-9a-fA-F]{8}/) || [])[0]?.toLowerCase();
@@ -153,7 +153,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
 
   // Both paths BROADCAST with an explicit gas cap (so viem skips eth_estimateGas, which can falsely
   // revert on a stale load-balanced read node) and judge by the RECEIPT status, which reflects the
-  // sequencer's real state — not a lagging RPC view. A clean operator's payout executes; a 7702-delegated
+  // sequencer's real state, not a lagging RPC view. A clean operator's payout executes; a 7702-delegated
   // operator's reverts on-chain (its signature is answered by the sweeper). The reverted tx is real evidence.
   async function payout(expectRefusal = false): Promise<{ ok: true; hash: `0x${string}` } | { ok: false; reason: string; hash?: `0x${string}` }> {
     const mk = async () => {
@@ -181,7 +181,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
     return { ok: false, reason: "reverted" };
   }
 
-  // 1 — the vault (forked live tenant)
+  // 1, the vault (forked live tenant)
   yield { step: "setup", t: t(), carol: operator.address, msg: `Operator ${operator.address} signs payouts for the Chainwall vault.` };
   await holdStep();
   yield { step: "vault-start", t: t(), msg: useFork ? "Reading the Chainwall tenant on a Whitechain fork." : `Reading the live Chainwall tenant on ${cfg.name}.` };
@@ -195,7 +195,7 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   yield { step: "fund", t: t(), vaultUSDC: fmt(v0), msg: `Vault holds ${fmt(v0)} USDC.` };
   await pause();
 
-  // 2 — a normal payout by the clean operator
+  // 2, a normal payout by the clean operator
   await holdStep();
   yield { step: "payout-propose", t: t(), msg: "Operator signs a 1,000 USDC payout (gasless); the relayer submits it." };
   await pause();
@@ -203,14 +203,14 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   if (legit.ok) {
     const v1 = await bal(VAULT); const r1 = await bal(RECIP);
     yield { step: "payout-exec", t: t(), txHash: legit.hash, msg: "Chainwall checked the signature and policy, then released the funds." };
-    yield { step: "payout-done", t: t(), recipientUSDC: fmt(r1), vaultUSDC: fmt(v1), msg: `Payout executed — ${fmt(1_000_000_000n)} USDC to the recipient.` };
+    yield { step: "payout-done", t: t(), recipientUSDC: fmt(r1), vaultUSDC: fmt(v1), msg: `Payout executed, ${fmt(1_000_000_000n)} USDC to the recipient.` };
   } else {
     yield { step: "error", t: t(), msg: `The baseline payout did not execute (${legit.reason}).` };
   }
 
   await pause();
 
-  // 3 — the 7702 hijack of the operator
+  // 3, the 7702 hijack of the operator
   await holdStep();
   yield { step: "delegate", t: t(), msg: "The attacker runs the EIP-7702 stolen-key trick on the vault's operator." };
   await pause();
@@ -220,12 +220,12 @@ export async function* runDefense(signal?: AbortSignal, chainId?: number): Async
   yield { step: "delegate-done", t: t(), carol: operator.address, delegate: SWEEPER, code: code ?? undefined, txHash: opDelegateTx, msg: `Operator's account now runs the sweeper's code (${code?.slice(0, 12)}…).` };
   await pause();
 
-  // 4 — Chainwall sees it
+  // 4, Chainwall sees it
   await holdStep();
-  yield { step: "detect", t: t(), carol: operator.address, delegate: SWEEPER, msg: "The operator's code now starts with 0xef0100 — an EIP-7702 delegation." };
+  yield { step: "detect", t: t(), carol: operator.address, delegate: SWEEPER, msg: "The operator's code now starts with 0xef0100, an EIP-7702 delegation." };
   await pause();
 
-  // 5 — the refused payout
+  // 5, the refused payout
   await holdStep();
   yield { step: "attack", t: t(), amount: fmt(AMOUNT), msg: `The attacker makes the hijacked operator sign a ${fmt(AMOUNT)} USDC payout from the vault.` };
   await pause();

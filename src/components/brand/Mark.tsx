@@ -1,5 +1,5 @@
 /**
- * Binonce mark — a gold exchange gem on the inside, the EIP-7702 story on the outside.
+ * Binonce mark, a gold exchange gem on the inside, the EIP-7702 story on the outside.
  * Nine authorizations signed at consecutive nonces, laid out as a 3×3 grid rotated into a
  * diamond: eight ring the outside as spent spares (soft-gold dots), the one that lands sits
  * at the heart as a cut gold gem. The diamond + gold evoke a crypto exchange; it is
