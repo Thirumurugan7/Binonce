@@ -6,7 +6,7 @@ import { LockCompare } from "./LockCompare";
 /**
  * Status is stated plainly, from the repo:
  *  - The Blacklist is implemented (Arkiv reads/writes + importer).
- *  - The Lock has its walkthrough UI at /defense; its on-chain integration is being rebuilt.
+ *  - The Lock runs live at /defense (the Whitechain operator flow + the Sepolia Safe route).
  *  - The Alarm is designed in docs/tracks/chainlink-alarm.md but not built.
  */
 const LAYERS: {
@@ -17,14 +17,14 @@ const LAYERS: {
     name: "The Lock",
     role: "Keeps the door shut",
     by: "Chainwall",
-    status: "In progress",
-    tone: "progress",
+    status: "Live on testnet",
+    tone: "live",
     body: "Treasury funds sit in a governed vault instead of a bare key. Money moves only through interactions the policy already approved, so a stolen signature has nothing it is allowed to do.",
     detail: (
-      <>The walkthrough UI is built; its on-chain run is being rewired. The engine checks every signer first. If the signer’s account has become delegated code, the call reverts with{" "}
+      <>The engine checks every signer first. If the signer’s account has become delegated code, the call reverts with{" "}
         <code className="font-mono text-[0.92em] text-bn-ink">ActorDelegated</code> before any signature is even looked at.</>
     ),
-    link: { href: "/defense", label: "See the defense walkthrough" },
+    link: { href: "/defense", label: "See it with Chainwall" },
   },
   {
     name: "The Blacklist",
@@ -100,7 +100,7 @@ export function Layers() {
           <a href={CHAINWALL} target="_blank" rel="noopener noreferrer" className="bn-focus rounded underline underline-offset-4 decoration-bn-line hover:decoration-bn-ink text-bn-ink-2 inline-flex items-center gap-0.5">
             OKcontract’s Chainwall<ArrowUpRight className="h-3 w-3" />
           </a>
-          . Binonce built the attack replay, the Blacklist and the walkthroughs around it.
+          . Binonce built the attack replay, the Blacklist and the live defense around it.
         </p>
       </Reveal>
     </section>

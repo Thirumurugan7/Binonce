@@ -29,7 +29,7 @@ function compile(file: string, name: string): Compiled {
  */
 export async function deployFresh(): Promise<RunConfig> {
   const relayerPk = process.env.RELAYER_PK as `0x${string}` | undefined;
-  if (!relayerPk) throw new Error("RELAYER_PK missing — run setup first.");
+  if (!relayerPk) throw new Error("RELAYER_PK missing, run setup first.");
   const relayer = privateKeyToAccount(relayerPk);
   const pub = publicClient();
   const wallet = walletClient(relayer);

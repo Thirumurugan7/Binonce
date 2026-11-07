@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, RotateCcw, ArrowDownToLine } from "lucide-react";
+import { Play, RotateCcw, ArrowDownToLine, ArrowRight } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
 import { Terminal } from "./Terminal";
@@ -16,6 +16,8 @@ import { SetupNotice } from "./SetupNotice";
 import type { AttackEvent } from "@/lib/types";
 import { num, money, shortAddr } from "@/lib/format";
 import { ARKIV_EXPLORER } from "@/components/landing/links";
+import { useOperatorWallet } from "@/app/defense/wallet-context";
+import { APP_CHAINS, whitechainTestnet } from "@/lib/demo-config";
 
 const BASE = 2_500_000;
 const emptyTrace: TraceState = {
@@ -24,7 +26,6 @@ const emptyTrace: TraceState = {
   lines: [], attackerRecv: null, delegateTx: null, delegateBlock: null,
   sweepTx: null, sweepBlock: null, victimCode: null, sweeperAddr: null, arkivKey: null,
 };
-const explorerFor = (chain: string) => (chain === "Sepolia" ? "https://sepolia.etherscan.io" : null);
 
 export function AttackPage() {
   const [tusd, setTusd] = useState(0);
@@ -42,12 +43,11 @@ export function AttackPage() {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [chain, setChain] = useState("Local anvil");
   const [arkiv, setArkiv] = useState(false);
   const [mintOpen, setMintOpen] = useState(false);
   const [activityVersion, setActivityVersion] = useState(0);
 
-  const esRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const nonceStart = useRef(0);
   const doneRef = useRef(false);
   const rafRef = useRef<number | null>(null);
@@ -63,23 +63,30 @@ export function AttackPage() {
   }, []);
   const patchRow = useCallback((id: string, patch: Partial<HistoryRow>) => setHistory((h) => h.map((r) => (r.id === id ? { ...r, ...patch } : r))), []);
 
+  // The connected wallet's network selects which tenant the attack targets; default Whitechain.
+  const wallet = useOperatorWallet();
+  const activeChainId = wallet?.connected && !wallet.wrongChain ? (wallet.chainId ?? whitechainTestnet.id) : whitechainTestnet.id;
+  const activeChain = APP_CHAINS.find((c) => c.id === activeChainId) ?? whitechainTestnet;
+  const chain = activeChain.name;
+  const explorer = activeChain.blockExplorers.default.url;
+
   // The wallet's real on-chain state: balance and whether its code is a delegation.
   const fetchBalance = useCallback(() => {
-    fetch("/api/balance").then((r) => r.json()).then((c) => {
+    fetch(`/api/balance?chain=${activeChainId}`).then((r) => r.json()).then((c) => {
       if (!c.configured) return;
       const v = c.usdt ?? 0;
       setTusd(v); setEth(c.eth ?? null); setVictim(c.victim ?? null); setDelegated(!!c.delegated); setLoaded(true);
       setBaseline((b) => (b == null ? v : b)); addPoint(v);
     }).catch(() => {});
-  }, [addPoint]);
+  }, [activeChainId, addPoint]);
 
   useEffect(() => {
-    fetch("/api/config").then((r) => r.json())
-      .then((c) => { setConfigured(!!c.configured); setChain(c.chain ?? "Local anvil"); setArkiv(!!c.arkiv); setAttacker(c.attacker ?? null); })
+    fetch(`/api/config?chain=${activeChainId}`).then((r) => r.json())
+      .then((c) => { setConfigured(!!c.configured); setArkiv(!!c.arkiv); setAttacker(c.attacker ?? null); })
       .catch(() => setConfigured(false));
     fetchBalance();
-    return () => esRef.current?.close();
-  }, [fetchBalance]);
+    return () => abortRef.current?.abort();
+  }, [fetchBalance, activeChainId]);
 
   const addLine = useCallback((t: number, msg: string, kind?: "hot" | "ok" | "go", tx?: string) => {
     setTrace((tr) => ({ ...tr, lines: [...tr.lines, { t, msg, kind, tx }] }));
@@ -112,13 +119,13 @@ export function AttackPage() {
 
   const finish = useCallback(() => {
     setRunning(false);
-    esRef.current?.close();
+    abortRef.current?.abort();
+    abortRef.current = null;
   }, []);
 
   const txLink = useCallback((h?: string | null) => {
-    const ex = explorerFor(chain);
-    return h && ex ? { href: `${ex}/tx/${h}`, label: `tx ${shortAddr(h)}` } : undefined;
-  }, [chain]);
+    return h && explorer ? { href: `${explorer}/tx/${h}`, label: `tx ${shortAddr(h)}` } : undefined;
+  }, [explorer]);
 
   const handle = useCallback((e: AttackEvent) => {
     const t = e.t ?? Date.now();
@@ -131,7 +138,7 @@ export function AttackPage() {
         break;
       case "before":
         setTusd(num(e.victimTUSD ?? "0"));
-        addLine(t, `${e.msg}: ${e.victimTUSD} tUSD`);
+        addLine(t, `${e.msg}: ${e.victimTUSD} USDC`);
         break;
       case "empty":
         addLine(t, e.msg ?? "", "hot");
@@ -247,22 +254,44 @@ export function AttackPage() {
     setTrace(emptyTrace); setStolen(0); setElapsed(null); setHistory([]);
   }, []);
 
-  const run = useCallback(() => {
+  // fetch + stream reader (not EventSource: EventSource auto-reconnects on stream close, which would
+  // silently start a second attack against the same victim). One run at a time; aborting tells the server to stop.
+  const run = useCallback(async () => {
     if (running) return;
     clear();
     setRunning(true);
     t0.current = Date.now();
     doneRef.current = false;
     toast.clear();
-    toast.info({ title: `Attack started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
-    const es = new EventSource("/api/run");
-    esRef.current = es;
-    es.onmessage = (ev) => { try { handle(JSON.parse(ev.data)); } catch { /* ignore malformed line */ } };
-    es.onerror = () => {
-      es.close(); finish();
-      if (!doneRef.current) toast.error({ title: "Lost the connection to the run", body: "The chain may still finish it. Refresh to see the wallet’s real balance." });
-    };
-  }, [running, clear, handle, finish, chain]);
+    toast.info({ title: `Replay started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
+    const ac = new AbortController();
+    abortRef.current = ac;
+    try {
+      const res = await fetch(`/api/run?chain=${activeChainId}`, { signal: ac.signal, headers: { Accept: "text/event-stream" } });
+      if (!res.ok || !res.body) throw new Error(`run endpoint returned ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split("\n\n");
+        buf = frames.pop() ?? "";
+        for (const f of frames) {
+          const line = f.replace(/^data: /, "").trim();
+          if (!line) continue;
+          try { handle(JSON.parse(line)); } catch { /* skip bad frame */ }
+        }
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError") && !doneRef.current) {
+        toast.error({ title: "Lost the connection to the run", body: "The chain may still finish it. Refresh to see the wallet’s real balance." });
+      }
+    } finally {
+      finish();
+    }
+  }, [running, clear, handle, finish, chain, activeChainId]);
 
   const onMinted = useCallback((balance: number) => {
     const added = balance - tusdRef.current;
@@ -272,7 +301,6 @@ export function AttackPage() {
     fetchBalance();
   }, [fetchBalance, upsertRow, addPoint]);
 
-  const explorer = explorerFor(chain);
   const ready = configured === true;
   const finished = trace.steps.sweep === "done";
   const started = trace.lines.length > 0;
@@ -287,7 +315,7 @@ export function AttackPage() {
     { sym: "ETH", name: "Ethereum", amt: eth, price: null as number | null, priceNote: "gas only" },
   ];
 
-  // What the exchange's own screen can tell at each moment. Signing is invisible from here — that's the point.
+  // What the exchange's own screen can tell at each moment. Signing is invisible from here, that's the point.
   const alert: PortfolioAlert | null =
     phase === 1 ? { tone: "info", title: "Nothing looks wrong yet", body: "The attacker is signing with the leaked key, offline. No exchange screen can see this step." }
     : phase === 2 ? { tone: "warn", title: "A transaction for this wallet, sent by someone else", body: "It carries an authorization signed with this wallet’s own key." }
@@ -306,7 +334,7 @@ export function AttackPage() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5 border-b border-bn-line mb-6">
           <div className="min-w-0 flex-1 basis-[26rem]">
             <h1 className="m-0 text-[15px] font-medium text-bn-ink">
-              Attack replay <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
+              Without Chainwall <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
             </h1>
             <p className="m-0 mt-1 text-[13.5px] text-bn-ink-2 max-w-[46rem]">
               The left is a stand-in exchange portfolio. Press <b className="font-medium text-bn-ink">Launch attack</b> and watch it
@@ -322,7 +350,7 @@ export function AttackPage() {
                     {running ? "Running…" : finished ? "Run again" : "Launch attack"}
                   </Button>}
             </div>
-            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty — deposit test tUSD first" : `${status} · test tokens only`}</span>
+            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty, deposit test tUSD first" : `${status} · test tokens only`}</span>
           </div>
         </div>
 
@@ -358,6 +386,29 @@ export function AttackPage() {
           </aside>
         </div>
 
+        {/* The payoff hand-off: once the drain completes, send the viewer to the same attack, refused. */}
+        {finished && (
+          <section aria-label="What stops this" className="mt-10">
+            <div className="relative overflow-hidden rounded-panel bg-bn-night text-bn-fog border border-bn-night-line px-6 py-7 sm:px-9 sm:py-8 flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-2 text-[11.5px] uppercase tracking-[0.12em] text-bn-fog-2 mb-2.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-bn-ember-glow" aria-hidden /> Drain complete
+                </div>
+                <h2 className="font-serif font-normal text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-bn-fog m-0">
+                  That wallet had nothing protecting it.
+                </h2>
+                <p className="text-[15px] leading-relaxed text-bn-fog-2 mt-2.5 mb-0 max-w-[46rem]">
+                  The whole balance left in a single call, and the owner never signed for it. Put the same money behind a
+                  Chainwall vault and run the exact same attack, this time it gets refused.
+                </p>
+              </div>
+              <div className="flex-none">
+                <Button href="/defense" variant="inverse" size="lg" icon={<ArrowRight className="h-4 w-4" />}>See it with Chainwall</Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section aria-labelledby="log" className="mt-12">
           <div className="flex flex-wrap items-end gap-x-4 gap-y-1 mb-4">
             <h2 id="log" className="font-serif font-normal text-[28px] text-bn-ink m-0">Live transaction log</h2>
@@ -389,7 +440,7 @@ export function AttackPage() {
       </div>
 
       <Toaster />
-      <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorer} arkiv={arkiv} />
+      <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorer} arkiv={arkiv} chainId={activeChainId} />
     </>
   );
 }

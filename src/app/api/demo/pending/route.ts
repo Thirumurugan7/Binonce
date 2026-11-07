@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Fast list of open proposals from the saved files (propose writes them, execute
- *  deletes them). On-chain approval state is read client-side via wagmi — so this
+ *  deletes them). On-chain approval state is read client-side via wagmi, so this
  *  route makes NO slow CLI calls. A refresh (or another signer) always sees what's
  *  pending instead of losing it to React state. */
 export async function GET() {

@@ -12,7 +12,7 @@ stablecoins, we ship our own so anyone can mint freely.
 
 | Function | Notes |
 |---|---|
-| `mint(address to, uint256 amount)` | **Open mint** — anyone can mint. Test token only. Used by `scripts/fund.mjs`. |
+| `mint(address to, uint256 amount)` | **Open mint**, anyone can mint. Test token only. Used by `scripts/fund.mjs`. |
 | `transfer`, `approve`, `transferFrom` | Standard ERC-20. |
 | `balanceOf`, `allowance`, `totalSupply` | Standard views. |
 

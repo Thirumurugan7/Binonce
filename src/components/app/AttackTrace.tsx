@@ -21,14 +21,14 @@ export type AttackKey = keyof TraceState["steps"];
 
 export const ATTACK_STEPS: Step<AttackKey>[] = [
   { key: "sign", title: "1 · Sign fake permissions",
-    now: "The stolen key signs 50 permission slips — in secret.",
+    now: "The stolen key signs 50 permission slips, in secret.",
     why: "Each EIP-7702 authorization says “let this wallet run the attacker’s contract.” They’re signed offline with the leaked key, so nothing shows up on-chain or in the owner’s app yet. This is the step the portfolio on the left cannot see." },
   { key: "delegate", title: "2 · Send them to the chain",
     now: "One transaction carries all 50 to the chain.",
     why: "The attacker’s relayer sends them in a single transaction and pays the fee itself. The owner is never asked to confirm anything, because they aren’t the one sending it." },
   { key: "verify", title: "3 · Hijack the wallet",
     now: "The wallet starts running the attacker’s code.",
-    why: "Only the one permission matching the wallet’s current nonce takes effect; the other 49 are spares. The wallet’s code flips from empty to 0xef0100 + the attacker’s contract. Same address, same balance — but it now obeys the attacker." },
+    why: "Only the one permission matching the wallet’s current nonce takes effect; the other 49 are spares. The wallet’s code flips from empty to 0xef0100 + the attacker’s contract. Same address, same balance, but it now obeys the attacker." },
   { key: "sweep", title: "4 · Drain it",
     now: "One call moves the whole balance out.",
     why: "The relayer pokes the wallet. Because it now runs the attacker’s contract, it reads its own balance and sends all of it to the attacker’s address in a single call." },

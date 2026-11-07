@@ -22,6 +22,7 @@ export interface DefenseEvent {
   delegate?: string; code?: string; delegated?: boolean;
   // attack / refuse
   amount?: string; attempted?: string; reason?: string; selector?: string;
+  txHash?: string;
 }
 
 export type DefenseEmit = (e: DefenseEvent) => void;

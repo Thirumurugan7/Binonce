@@ -5,15 +5,18 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Wordmark, ThemeToggle } from "@/components/brand";
 import { REPO } from "@/components/landing/links";
+import { WalletMenu } from "./WalletMenu";
+import { useOperatorWallet } from "@/app/defense/wallet-context";
 
 const MODES = [
-  { href: "/attack", label: "Attack replay", short: "Attack" },
-  { href: "/defense", label: "Defense", short: "Defense" },
+  { href: "/attack", label: "Without Chainwall", short: "Unguarded" },
+  { href: "/defense", label: "With Chainwall", short: "Guarded" },
 ] as const;
 
 /** Top bar for the app pages: brand (back to landing), Attack ↔ Defense switch, theme. */
 export function AppNav({ chain }: { chain?: string }) {
   const path = usePathname() ?? "";
+  const wallet = useOperatorWallet();
   return (
     <header className="sticky top-0 z-50 bg-bn-paper/85 backdrop-blur-md border-b border-bn-line">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3 sm:gap-6">
@@ -33,12 +36,13 @@ export function AppNav({ chain }: { chain?: string }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
-          {chain && (
-            <span className="hidden md:inline-flex items-center gap-2 h-8 px-3 mr-1 rounded-full border border-bn-line font-mono text-[11.5px] text-bn-ink-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          {chain && !wallet?.connected && (
+            <span className="hidden md:inline-flex items-center gap-2 h-8 px-3 rounded-full border border-bn-line font-mono text-[11.5px] text-bn-ink-2">
               <span className="h-1.5 w-1.5 rounded-full bg-bn-seal" aria-hidden />{chain}
             </span>
           )}
+          <WalletMenu />
           <a href={REPO} target="_blank" rel="noopener noreferrer" className="bn-focus hidden sm:inline rounded px-2 text-[14px] text-bn-ink-2 hover:text-bn-ink">GitHub</a>
           <ThemeToggle />
         </div>

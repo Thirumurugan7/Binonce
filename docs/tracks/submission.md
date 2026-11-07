@@ -6,24 +6,24 @@
   viem, SDKs) are fine. The Binance incident research and planning (these docs) are fine; the
   code is not.
 - **AI usage:** disclose how AI was used. Projects relying entirely on AI may lose partner/finalist eligibility.
-- **Max 3 partner prizes**, chosen on the last submission step — the only way partners see the project.
+- **Max 3 partner prizes**, chosen on the last submission step, the only way partners see the project.
 - **Commit steadily:** no single giant commit at the end. Several partners reject single-commit dumps.
 
 ## Our 3 partner picks
 
-1. **Arkiv** — The Blacklist (Mirror track + Swarm bonus)
-2. **Ethereum Foundation** — The Lock (CROPS, Alt Mempool as stretch)
-3. **Chainlink** — The Alarm (CRE)
+1. **Arkiv**, The Blacklist (Mirror track + Swarm bonus)
+2. **Ethereum Foundation**, The Lock (CROPS, Alt Mempool as stretch)
+3. **Chainlink**, The Alarm (CRE)
 
 Also select **Finalist judging**: 4-min demo + 3-min Q&A.
 
 ## Finalist demo script (4 min)
 
-1. **The break-in (45s)** — replay last week's $6B Binance attack on an unlocked wallet → drained.
-2. **🔒 The Lock (75s)** — same stolen key, same attack, wallet behind The Lock → rejected. Switch off the backend → still rejected.
-3. **🚨 The Alarm (45s)** — The Alarm sees the hijack and fires on-chain.
-4. **📕 The Blacklist (45s)** — The Blacklist names the thief contract; run a live query.
-5. **Close (30s)** — "A valid signature is not an approved action."
+1. **The break-in (45s)**, replay last week's $6B Binance attack on an unlocked wallet → drained.
+2. **🔒 The Lock (75s)**, same stolen key, same attack, wallet behind The Lock → rejected. Switch off the backend → still rejected.
+3. **🚨 The Alarm (45s)**, The Alarm sees the hijack and fires on-chain.
+4. **📕 The Blacklist (45s)**, The Blacklist names the thief contract; run a live query.
+5. **Close (30s)**, "A valid signature is not an approved action."
 
 ## Judge Q&A prep
 
@@ -40,7 +40,7 @@ Also select **Finalist judging**: 4-min demo + 3-min Q&A.
 - [ ] Collect published Binance attack addresses (attacker, sweeper) with source links
 - [ ] Booths to visit: OKcontract, Arkiv, EF (alt mempool team), Chainlink
 
-## First 2 hours — de-risk before building
+## First 2 hours, de-risk before building
 
 | # | Test | If it fails |
 |---|---|---|

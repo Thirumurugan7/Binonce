@@ -1,4 +1,4 @@
-# Whitechain Testnet — Chainwall defense deployment
+# Whitechain Testnet, Chainwall defense deployment
 
 The live defense stack is deployed on **Whitechain Testnet (chain ID `1874`)** and driven through the
 **`chainwall` CLI** (v0.3.1). This records every address, transaction, and command so the deployment
@@ -11,8 +11,8 @@ is reproducible.
 
 ## Why Whitechain
 
-Whitechain testnet (an OP-Stack L2) already has the infrastructure Chainwall needs — **Safe 1.3.0**,
-**EntryPoint v0.6/0.7/0.8**, the Safe ProxyFactory, and Multicall3 — and it executes **EIP-7702**
+Whitechain testnet (an OP-Stack L2) already has the infrastructure Chainwall needs, **Safe 1.3.0**,
+**EntryPoint v0.6/0.7/0.8**, the Safe ProxyFactory, and Multicall3, and it executes **EIP-7702**
 type-4 transactions, so both the attack and the defense run on one chain.
 
 ## Addresses
@@ -28,7 +28,7 @@ type-4 transactions, so both the attack and the defense run on one chain.
 | **AccountFactory** (OKAccount vaults) | `0x0bC035AC5477A0a8ed170fa87f4fe7E9aCcBaF4b` |
 | Owner / deployer | `0x3ae7F2767111D8700F82122A373792B99d605749` (keystore `wc-owner`) |
 
-Deploy salt: `chainwall-defense-v1`. Stage txs — bootstrap `0xe352d0b2…`, prepare `0x5f0b92ce…`,
+Deploy salt: `chainwall-defense-v1`. Stage txs, bootstrap `0xe352d0b2…`, prepare `0x5f0b92ce…`,
 finalize `0x1dd38972…`. Terms accepted: tx `0x24d5bb6e…` (initial-terms hash
 `0xc0d0b6034b7971648ff8332f4002119b0b39358ce84d4865a90101fc2220ab80`).
 
@@ -87,9 +87,9 @@ chainwall policies add $POLICY "[$GROUP]" "[2]" --account wc-owner --password-fi
 
 ## Requirements / gotchas
 
-- **Foundry ≥ 1.8.6** — the CLI builds `cast send --data`, which older `cast` (1.5.1) rejects.
+- **Foundry ≥ 1.8.6**, the CLI builds `cast send --data`, which older `cast` (1.5.1) rejects.
   Install with `foundryup -i 1.8.6`.
-- The initial-terms document is on IPFS; the default `ipfs.io` gateway was down — use
+- The initial-terms document is on IPFS; the default `ipfs.io` gateway was down, use
   `--ipfs-gateway https://gateway.pinata.cloud/ipfs`.
 - Registry writes by the bootstrap owner apply **directly** (no timelock) while
   `bootstrapFinalized == false`.
