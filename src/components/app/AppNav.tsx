@@ -9,8 +9,8 @@ import { WalletMenu } from "./WalletMenu";
 import { useOperatorWallet } from "@/app/defense/wallet-context";
 
 const MODES = [
-  { href: "/attack", label: "Attack replay", short: "Attack" },
-  { href: "/defense", label: "Defense", short: "Defense" },
+  { href: "/attack", label: "Without Chainwall", short: "Unguarded" },
+  { href: "/defense", label: "With Chainwall", short: "Guarded" },
 ] as const;
 
 /** Top bar for the app pages: brand (back to landing), Attack ↔ Defense switch, theme. */

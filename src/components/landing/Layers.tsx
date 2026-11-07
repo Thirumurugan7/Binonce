@@ -24,7 +24,7 @@ const LAYERS: {
       <>The walkthrough UI is built; its on-chain run is being rewired. The engine checks every signer first. If the signer’s account has become delegated code, the call reverts with{" "}
         <code className="font-mono text-[0.92em] text-bn-ink">ActorDelegated</code> before any signature is even looked at.</>
     ),
-    link: { href: "/defense", label: "See the defense walkthrough" },
+    link: { href: "/defense", label: "See it with Chainwall" },
   },
   {
     name: "The Blacklist",

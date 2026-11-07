@@ -263,7 +263,7 @@ export function AttackPage() {
     t0.current = Date.now();
     doneRef.current = false;
     toast.clear();
-    toast.info({ title: `Attack started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
+    toast.info({ title: `Replay started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
     const ac = new AbortController();
     abortRef.current = ac;
     try {
@@ -334,7 +334,7 @@ export function AttackPage() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5 border-b border-bn-line mb-6">
           <div className="min-w-0 flex-1 basis-[26rem]">
             <h1 className="m-0 text-[15px] font-medium text-bn-ink">
-              Attack replay <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
+              Without Chainwall <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
             </h1>
             <p className="m-0 mt-1 text-[13.5px] text-bn-ink-2 max-w-[46rem]">
               The left is a stand-in exchange portfolio. Press <b className="font-medium text-bn-ink">Launch attack</b> and watch it
