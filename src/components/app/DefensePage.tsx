@@ -18,11 +18,10 @@ import { useOperatorWallet } from "@/app/defense/wallet-context";
 import { APP_CHAINS, whitechainTestnet } from "@/lib/demo-config";
 
 /**
- * Live run streams from /api/defense/run (SSE), driving `defense.current.handle(event)` per step.
- * The backend executes the real 7702-defense flow against a Whitechain fork (deployed Chainwall
- * contracts, no Safe): a clean operator's signed payout executes; a 7702-delegated operator's is refused.
+ * The live "With Chainwall" run streams from /api/defense/run (SSE), one step at a time. The backend
+ * executes the real 7702-defense flow on the selected network (the Whitechain operator flow, or the
+ * Sepolia Safe route): a clean signer's payout executes; a 7702-delegated signer's payout is refused.
  */
-const INTEGRATED = true;
 
 const emptyTrace: DefenseTraceState = {
   steps: { vault: "idle", payout: "idle", hijack: "idle", detect: "idle", refuse: "idle" },
@@ -37,7 +36,7 @@ export function DefensePage() {
   const [trace, setTrace] = useState<DefenseTraceState>(emptyTrace);
   const [running, setRunning] = useState(false);
   // The connected wallet's network selects which tenant the run targets; default Whitechain when
-  // not connected or on an unsupported network — so nothing changes unless you connect to Sepolia.
+  // not connected or on an unsupported network, so nothing changes unless you connect to Sepolia.
   const wallet = useOperatorWallet();
   const activeChainId = wallet?.connected && !wallet.wrongChain ? (wallet.chainId ?? whitechainTestnet.id) : whitechainTestnet.id;
   const activeChain = APP_CHAINS.find((c) => c.id === activeChainId) ?? whitechainTestnet;
@@ -90,7 +89,7 @@ export function DefensePage() {
         setTrace((tr) => ({ ...tr, recipientUSDC: e.recipientUSDC ?? null, vaultUSDC: e.vaultUSDC ?? null }));
         setStep("payout", "done"); setUsdc(num(e.vaultUSDC ?? "0")); addLine(t, e.msg ?? "", "ok");
         addNote("ok", "Payment sent", `${e.recipientUSDC ?? ""} USDC · operator-signed`);
-        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC — signature and policy checked.` }, "payout");
+        toast.success({ title: "Payout executed", body: `${e.recipientUSDC ?? ""} USDC, signature and policy checked.` }, "payout");
         break;
       case "delegate": activate("hijack"); addLine(t, e.msg ?? "", "hot"); break;
       case "delegate-deploy": setTrace((tr) => ({ ...tr, delegate: e.delegate ?? null })); addLine(t, e.msg ?? "", "hot"); break;
@@ -127,7 +126,7 @@ export function DefensePage() {
     }
   }, [addLine, addNote, activate, setStep, finish]);
 
-  // Integration seam for the rebuilt defense backend.
+  // Latest handlers, so the long-lived stream reader in run() never calls a stale closure.
   const defense = useRef({ handle, finish });
   defense.current = { handle, finish };
 
@@ -136,7 +135,7 @@ export function DefensePage() {
   // fetch + stream reader (not EventSource: EventSource auto-reconnects on stream close, which would
   // silently kick off a second run). One run at a time; aborting the fetch tells the server to stop.
   const run = useCallback(async () => {
-    if (!INTEGRATED || running) return;
+    if (running) return;
     reset(); setRunning(true);
     const ac = new AbortController();
     abortRef.current = ac;
@@ -178,7 +177,7 @@ export function DefensePage() {
   // server-driven in that case, so gate every wallet-connected block on the provider being present.
   const walletReady = wallet != null;
 
-  // Show the vault's real balance immediately, before any run — the state endpoints read the live
+  // Show the vault's real balance immediately, before any run, the state endpoints read the live
   // tenant. Refresh on mount, on a network change, and after a run finishes (not mid-run, where the
   // step events drive the number).
   const loadVaultBalance = useCallback(() => {
@@ -202,18 +201,11 @@ export function DefensePage() {
           <div className="flex flex-col items-start sm:items-end gap-2.5">
             <div className="flex gap-2.5">
               {trace.lines.length > 0 && !running && <Button variant="secondary" size="lg" onClick={reset} icon={<RotateCcw className="h-4 w-4" />}>Clear</Button>}
-              <Button size="lg" onClick={run} disabled={!INTEGRATED || running} icon={<ShieldCheck className="h-4 w-4" />}>{running ? "Running…" : "Run defense"}</Button>
+              <Button size="lg" onClick={run} disabled={running} icon={<ShieldCheck className="h-4 w-4" />}>{running ? "Running…" : "Run defense"}</Button>
             </div>
-            <span className="text-[12.5px] text-bn-muted">{running ? "Running…" : "Ready · server-signed walkthrough"}</span>
+            <span className="text-[12.5px] text-bn-muted">{running ? "Running…" : `Ready · runs live on ${chain}`}</span>
           </div>
         </header>
-
-        {!INTEGRATED && (
-          <div role="status" className="mb-8 rounded-panel border border-bn-amber/40 bg-bn-amber/[0.07] px-5 py-4 text-[14px] text-bn-ink-2 leading-relaxed">
-            <b className="font-medium text-bn-ink">The live run is being rebuilt.</b> Until it’s back, click through the five
-            steps below to see what it does. Each one describes the real transaction it sends to a local fork of Arbitrum One.
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
           <div className="flex flex-col gap-6 min-w-0">
@@ -235,7 +227,7 @@ export function DefensePage() {
             <Terminal
               lines={trace.lines} running={running} explorer={explorer}
               command={`binonce defend --chain ${activeChain.id}`}
-              idle={INTEGRATED ? "Waiting. Press Run defense to start." : "The live run is being rebuilt, so nothing will stream here yet."}
+              idle="Waiting. Press Run defense to start."
             />
           </div>
 
@@ -269,7 +261,7 @@ export function DefensePage() {
             <div className="mt-6 rounded-panel border border-bn-line bg-bn-card/40 px-5 py-4 text-[14px] leading-relaxed text-bn-ink-2">
               <b className="font-medium text-bn-ink">Guarded-Safe route.</b> On {chain} the payout is approved by a
               2-of-3 Safe and executed through a Chainwall interaction whose actor is EIP-7702-checked. Two valid owner
-              signatures still can’t move funds once the actor’s key is hijacked — that’s the refusal above.
+              signatures still can’t move funds once the actor’s key is hijacked, that’s the refusal above.
             </div>
             <div className="mt-6">
               <SafeSigner />
