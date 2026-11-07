@@ -1,6 +1,6 @@
 # Detecting 7702 delegations & labeling sweepers
 
-How The Blacklist and The Alarm find and judge delegate contracts. No manual lookups — a
+How The Blacklist and The Alarm find and judge delegate contracts. No manual lookups, a
 script does it; only the handful of confirmed-attack addresses are hand-added.
 
 ## Finding delegations
@@ -27,7 +27,7 @@ for (const tx of block.transactions) {
 }
 ```
 
-(Confirm exact function names against the viem version at kickoff — v2 vs v3 differ.)
+(Confirm exact function names against the viem version at kickoff, v2 vs v3 differ.)
 
 ## Verifying it actually applied
 
@@ -39,23 +39,23 @@ confirm with `eth_getCode(wallet)`:
 
 ## Deciding the label (strongest → weakest)
 
-1. **`confirmed-thief`** — address appears in a published attack (e.g. the Binance sweeper). Hand-added with a source link.
-2. **`likely-thief`** — many wallets that delegated to it had funds sent to one same address within minutes (read `Transfer` events after the delegation block).
-3. **`suspicious`** — bytecode heuristics / LLM: tiny, no owner checks, forwards everything to one hardcoded address.
-4. **`known-good`** — official wallet implementations (MetaMask, Coinbase, Ambire …).
-5. **`unknown`** — insufficient info.
+1. **`confirmed-thief`**, address appears in a published attack (e.g. the Binance sweeper). Hand-added with a source link.
+2. **`likely-thief`**, many wallets that delegated to it had funds sent to one same address within minutes (read `Transfer` events after the delegation block).
+3. **`suspicious`**, bytecode heuristics / LLM: tiny, no owner checks, forwards everything to one hardcoded address.
+4. **`known-good`**, official wallet implementations (MetaMask, Coinbase, Ambire …).
+5. **`unknown`**, insufficient info.
 
 Heuristics have false positives, which is why "suspicious" ≠ "thief." Only (1) is asserted as confirmed.
 
 ## Practical limits
 
-- Don't scan all history — pick a recent range + the Binance block range, then follow new blocks.
+- Don't scan all history, pick a recent range + the Binance block range, then follow new blocks.
 - Use a free Alchemy/Infura key to avoid public-RPC rate limits.
 - Ethereum first; add Arbitrum only if time allows.
 
 ## As implemented (`scripts/import.ts`)
 
-This is exactly what the re-runnable importer does — no LLM, deterministic.
+This is exactly what the re-runnable importer does, no LLM, deterministic.
 
 **1. Collect delegations (real chain data).**
 - RPC: `SCAN_RPC` (defaults to the mainnet form of `CHAIN_RPC`, else a public node).
@@ -75,9 +75,9 @@ This is exactly what the re-runnable importer does — no LLM, deterministic.
 | …and reused by **≥ 3 distinct delegators** in the scan | `likely-thief` |
 | Anything else (e.g. a large smart-account implementation) | `unknown` |
 
-**3. Write to Arkiv.** Flagged contracts are prioritised over `unknown`, then ordered by delegator count, capped at `MAX_DELEGATES` (default 25). Each `chainwall.delegate` entity stores `chain, address, bytecodeHash, label, labelSource, delegatorCount, firstSeenBlock, ts`. Writes are **idempotent** on `(chain, address)` — re-running updates counts and labels.
+**3. Write to Arkiv.** Flagged contracts are prioritised over `unknown`, then ordered by delegator count, capped at `MAX_DELEGATES` (default 25). Each `chainwall.delegate` entity stores `chain, address, bytecodeHash, label, labelSource, delegatorCount, firstSeenBlock, ts`. Writes are **idempotent** on `(chain, address)`, re-running updates counts and labels.
 
-**4. `confirmed-thief` and curated seeds.** `confirmed-thief` is never produced by heuristics — it is hand-added only with a verifiable published source. A small `SEED` list in the importer carries contracts whose bytecode we inspected by hand (e.g. a sweeper that is owner-gated to a hardcoded operator and sweeps ERC-20 + ETH to it); these are written with the verified label and the evidence in `labelSource`.
+**4. `confirmed-thief` and curated seeds.** `confirmed-thief` is never produced by heuristics, it is hand-added only with a verifiable published source. A small `SEED` list in the importer carries contracts whose bytecode we inspected by hand (e.g. a sweeper that is owner-gated to a hardcoded operator and sweeps ERC-20 + ETH to it); these are written with the verified label and the evidence in `labelSource`.
 
 **Live demo.** Running an attack in the app also upserts the sweeper it used into the same registry (`upsertDelegate`), labelled `suspicious`, with its delegator count incremented on reuse.
 

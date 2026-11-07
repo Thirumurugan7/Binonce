@@ -1,7 +1,7 @@
 // Per-network contract + RPC selection for the attack and defense flows.
 // The signer keys (operator, relayer, victim) are shared across networks and come from env;
 // only the addresses, RPC and explorer differ per chain. Default is Whitechain (1874), so any
-// request without an explicit chain behaves exactly as before — Whitechain is never disturbed.
+// request without an explicit chain behaves exactly as before, Whitechain is never disturbed.
 
 export interface ChainConfig {
   id: number;
@@ -56,7 +56,7 @@ export const SEPOLIA_ID = 11155111;
 export const DEFAULT_CHAIN_ID = WHITECHAIN_ID;
 
 export const CHAINS: Record<number, ChainConfig> = {
-  // ─── Whitechain testnet (unchanged — the live, verified tenant) ───
+  // ─── Whitechain testnet (unchanged, the live, verified tenant) ───
   [WHITECHAIN_ID]: {
     id: WHITECHAIN_ID,
     name: "Whitechain Testnet",

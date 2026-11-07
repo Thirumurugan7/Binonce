@@ -73,7 +73,7 @@ export function BrandSection() {
         <Block title="Type">
           <div className="space-y-4">
             <p className="font-serif text-display-l m-0">Display · Instrument Serif</p>
-            <p className="font-serif text-display-s m-0">Section lead — <em>italic for the turn of phrase</em></p>
+            <p className="font-serif text-display-s m-0">Section lead, <em>italic for the turn of phrase</em></p>
             <p className="text-body-l text-bn-ink-2 m-0 max-w-[62ch]">Body large · Geist 19/1.6. Used for section intros.</p>
             <p className="text-[16px] text-bn-ink-2 m-0">Body · Geist 16/1.6</p>
             <Eyebrow index="01">Eyebrow · Geist Mono 12, tracked 0.14em</Eyebrow>

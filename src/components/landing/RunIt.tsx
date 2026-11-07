@@ -31,7 +31,7 @@ export function RunIt() {
           <Reveal delay={0.15}>
             <div className="flex flex-wrap gap-3 mt-9">
               <Button href="/attack" size="lg" icon={<ArrowRight className="h-4 w-4" />}>Run the replay</Button>
-              <Button href="/defense" size="lg" variant="secondary">Defense walkthrough</Button>
+              <Button href="/defense" size="lg" variant="secondary">With Chainwall</Button>
               <Button href={REPO} size="lg" variant="ghost" icon={<ArrowUpRight className="h-4 w-4" />}>Source</Button>
             </div>
           </Reveal>

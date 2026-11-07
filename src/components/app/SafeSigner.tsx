@@ -16,7 +16,7 @@ interface State { vaultUSDC: string; amountUSDC: string; delegated: boolean; act
 interface Result { ok: boolean; hash?: string; reason?: string }
 
 // Convert uint/int message fields to BigInt for viem; leave addresses/bytes as-is. EIP712Domain is
-// stripped (viem derives the domain separately) — the proven signing shape.
+// stripped (viem derives the domain separately), the proven signing shape.
 function coerce(td: TypedData): TypedData {
   const fields = td.types[td.primaryType] || [];
   const message: Record<string, unknown> = { ...td.message };
@@ -28,9 +28,9 @@ function coerce(td: TypedData): TypedData {
 
 /**
  * Wallet-signed, 2-signer Safe defense (Sepolia). Two distinct wallets sign in the browser: the ACTOR
- * (approver-3 — also a Safe owner) signs its execution authorization + its owner approval; a CO-SIGNER
+ * (approver-3, also a Safe owner) signs its execution authorization + its owner approval; a CO-SIGNER
  * owner (wc-owner) signs its owner approval. The server only proposes + relays. Clean actor -> executes.
- * 7702-hijack the actor and sign again — the wallets still sign, but the Safe + Chainwall refuse it.
+ * 7702-hijack the actor and sign again, the wallets still sign, but the Safe + Chainwall refuse it.
  */
 export function SafeSigner() {
   const wallet = useOperatorWallet();
@@ -153,7 +153,7 @@ export function SafeSigner() {
     <section className="rounded-panel border border-bn-line bg-bn-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-1">
         <Wallet className="h-4 w-4 text-bn-ink-2" />
-        <h2 className="font-serif font-normal text-[clamp(1.3rem,2vw,1.6rem)] text-bn-ink m-0">Sign it yourself — 2-of-3 Safe</h2>
+        <h2 className="font-serif font-normal text-[clamp(1.3rem,2vw,1.6rem)] text-bn-ink m-0">Sign it yourself, 2-of-3 Safe</h2>
         <div className="ml-auto">
           {!wallet || !wallet.connected ? (
             <span className="text-[12.5px] text-bn-muted">Connect your wallet from the top bar</span>
@@ -168,14 +168,14 @@ export function SafeSigner() {
         </div>
       </div>
       <p className="text-[14px] leading-relaxed text-bn-ink-2 mt-2 mb-5 max-w-[48rem]">
-        Two owners approve a real payout from the Safe in their own wallets — the actor (who is also an owner)
+        Two owners approve a real payout from the Safe in their own wallets, the actor (who is also an owner)
         signs its execution authorization + its approval, a co-signer owner signs the second approval, and a
         relayer submits. Then 7702-hijack the actor and sign again: both owners still sign, but the vault refuses.
       </p>
 
       {!onSepolia ? (
         <div className="rounded-data border border-bn-line bg-bn-paper-2/40 px-4 py-4 text-[13.5px] text-bn-ink-2">
-          {!wallet || !wallet.connected ? "Connect a signer wallet on Sepolia to begin." : "Switch your wallet to Sepolia (11155111) — this Safe lives there."}
+          {!wallet || !wallet.connected ? "Connect a signer wallet on Sepolia to begin." : "Switch your wallet to Sepolia (11155111), this Safe lives there."}
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_minmax(0,320px)] items-start">
@@ -194,12 +194,12 @@ export function SafeSigner() {
             {prep && state && (
               <div className="flex flex-col gap-2.5">
                 <SignerRow
-                  label="Approval 1 — operator (actor)" who="signs auth + approval" addr={state.signers.actor}
+                  label="Approval 1, operator (actor)" who="signs auth + approval" addr={state.signers.actor}
                   done={!!sigs.actorSig && !!sigs.actorOwnerSig} isConnectedSigner={isActor}
                   onSign={signAsActor} busyKey="actor" hint={`connect ${shortAddr(state.signers.actor)}`}
                 />
                 <SignerRow
-                  label="Approval 2 — co-signer owner" who="signs approval" addr={state.signers.coSigner}
+                  label="Approval 2, co-signer owner" who="signs approval" addr={state.signers.coSigner}
                   done={!!sigs.coSignerSig} isConnectedSigner={isCoSigner}
                   onSign={signAsCoSigner} busyKey="cosigner" hint={`connect ${shortAddr(state.signers.coSigner)}`}
                 />
@@ -220,13 +220,13 @@ export function SafeSigner() {
             {result && (
               result.ok ? (
                 <div className="rounded-data border border-bn-seal/40 bg-bn-seal-glow/[0.06] px-4 py-3 text-[13.5px]">
-                  <div className="flex items-center gap-2 text-bn-seal font-medium"><Check className="h-4 w-4" /> Executed — {state?.amountUSDC ?? ""} USDC moved from the Safe</div>
+                  <div className="flex items-center gap-2 text-bn-seal font-medium"><Check className="h-4 w-4" /> Executed, {state?.amountUSDC ?? ""} USDC moved from the Safe</div>
                   {result.hash && <a href={`${EXPLORER}/tx/${result.hash}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-mono text-[12px] text-bn-muted hover:text-bn-ink">{shortAddr(result.hash)} <ArrowUpRight className="h-3 w-3" /></a>}
                 </div>
               ) : (
                 <div className="rounded-data border border-bn-ember-glow/40 bg-bn-ember/[0.07] px-4 py-3 text-[13.5px]">
-                  <div className="flex items-center gap-2 text-bn-ember-ink font-medium"><Ban className="h-4 w-4" /> Refused — {result.reason || "ActorDelegated"}</div>
-                  <div className="mt-1 text-[12.5px] text-bn-ink-2">{state?.delegated ? "The actor is 7702-delegated, so its execution authorization is answered by the sweeper — two valid owner approvals still can’t move funds." : "No funds moved."}</div>
+                  <div className="flex items-center gap-2 text-bn-ember-ink font-medium"><Ban className="h-4 w-4" /> Refused, {result.reason || "ActorDelegated"}</div>
+                  <div className="mt-1 text-[12.5px] text-bn-ink-2">{state?.delegated ? "The actor is 7702-delegated, so its execution authorization is answered by the sweeper, two valid owner approvals still can’t move funds." : "No funds moved."}</div>
                   {result.hash && <a href={`${EXPLORER}/tx/${result.hash}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 font-mono text-[12px] text-bn-muted hover:text-bn-ink">{shortAddr(result.hash)} <ArrowUpRight className="h-3 w-3" /></a>}
                 </div>
               )
@@ -244,7 +244,7 @@ export function SafeSigner() {
             <div className="font-mono text-[12px] text-bn-ink mt-1 break-all">
               {state?.delegated
                 ? <><span className="text-bn-ember-glow font-semibold">0xef0100</span>{(state.actorCode || "").replace(/^0xef0100/i, "")}</>
-                : <span className="text-bn-muted">0x — a normal account</span>}
+                : <span className="text-bn-muted">0x, a normal account</span>}
             </div>
             <div className="mt-3 pt-3 border-t border-bn-line flex items-baseline justify-between text-[13px]">
               <span className="text-bn-ink-2">Safe</span><span className="font-mono tabular-nums text-bn-ink">{state?.vaultUSDC ?? "…"} USDC</span>

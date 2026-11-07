@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, RotateCcw, ArrowDownToLine } from "lucide-react";
+import { Play, RotateCcw, ArrowDownToLine, ArrowRight } from "lucide-react";
 import { Button } from "@/components/brand";
 import { AppNav } from "./AppNav";
 import { Terminal } from "./Terminal";
@@ -263,7 +263,7 @@ export function AttackPage() {
     t0.current = Date.now();
     doneRef.current = false;
     toast.clear();
-    toast.info({ title: `Attack started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
+    toast.info({ title: `Replay started on ${chain}`, body: "Watch the portfolio on the left; the attacker’s steps are on the right." });
     const ac = new AbortController();
     abortRef.current = ac;
     try {
@@ -315,7 +315,7 @@ export function AttackPage() {
     { sym: "ETH", name: "Ethereum", amt: eth, price: null as number | null, priceNote: "gas only" },
   ];
 
-  // What the exchange's own screen can tell at each moment. Signing is invisible from here — that's the point.
+  // What the exchange's own screen can tell at each moment. Signing is invisible from here, that's the point.
   const alert: PortfolioAlert | null =
     phase === 1 ? { tone: "info", title: "Nothing looks wrong yet", body: "The attacker is signing with the leaked key, offline. No exchange screen can see this step." }
     : phase === 2 ? { tone: "warn", title: "A transaction for this wallet, sent by someone else", body: "It carries an authorization signed with this wallet’s own key." }
@@ -333,7 +333,7 @@ export function AttackPage() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-5 border-b border-bn-line mb-6">
           <div className="min-w-0 flex-1 basis-[26rem]">
             <h1 className="m-0 text-[15px] font-medium text-bn-ink">
-              Attack replay <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
+              Without Chainwall <span className="font-normal text-bn-muted">· EIP-7702 leaked-key drain, modelled on Binance, Oct 2026</span>
             </h1>
             <p className="m-0 mt-1 text-[13.5px] text-bn-ink-2 max-w-[46rem]">
               The left is a stand-in exchange portfolio. Press <b className="font-medium text-bn-ink">Launch attack</b> and watch it
@@ -349,7 +349,7 @@ export function AttackPage() {
                     {running ? "Running…" : finished ? "Run again" : "Launch attack"}
                   </Button>}
             </div>
-            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty — deposit test tUSD first" : `${status} · test tokens only`}</span>
+            <span className="text-[12.5px] text-bn-muted">{empty ? "Wallet empty, deposit test tUSD first" : `${status} · test tokens only`}</span>
           </div>
         </div>
 
@@ -384,6 +384,29 @@ export function AttackPage() {
             <RunSummary phase={phase} signed={trace.nonces.signedUpto} txs={(trace.delegateTx ? 1 : 0) + (trace.sweepTx ? 1 : 0)} moved={stolen} elapsed={elapsed} />
           </aside>
         </div>
+
+        {/* The payoff hand-off: once the drain completes, send the viewer to the same attack, refused. */}
+        {finished && (
+          <section aria-label="What stops this" className="mt-10">
+            <div className="relative overflow-hidden rounded-panel bg-bn-night text-bn-fog border border-bn-night-line px-6 py-7 sm:px-9 sm:py-8 flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-2 text-[11.5px] uppercase tracking-[0.12em] text-bn-fog-2 mb-2.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-bn-ember-glow" aria-hidden /> Drain complete
+                </div>
+                <h2 className="font-serif font-normal text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-bn-fog m-0">
+                  That wallet had nothing protecting it.
+                </h2>
+                <p className="text-[15px] leading-relaxed text-bn-fog-2 mt-2.5 mb-0 max-w-[46rem]">
+                  The whole balance left in a single call, and the owner never signed for it. Put the same money behind a
+                  Chainwall vault and run the exact same attack, this time it gets refused.
+                </p>
+              </div>
+              <div className="flex-none">
+                <Button href="/defense" variant="inverse" size="lg" icon={<ArrowRight className="h-4 w-4" />}>See it with Chainwall</Button>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section aria-labelledby="log" className="mt-12">
           <div className="flex flex-wrap items-end gap-x-4 gap-y-1 mb-4">

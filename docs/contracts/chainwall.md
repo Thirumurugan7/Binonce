@@ -17,7 +17,7 @@ Stack: `Cells` (state runtime), `LambdaScript` (typed policies), `MiniScript` (o
 
 ## Why it stops the attack
 
-A stolen operator key can sign anything — but a 7702 self-delegation + arbitrary sweep is **not
+A stolen operator key can sign anything, but a 7702 self-delegation + arbitrary sweep is **not
 a pre-approved action**, so the guarded account rejects it. This is OKcontract's own thesis:
 *"Valid signatures are not enough."* A blanket address/method allowlist would fail; Chainwall
 matches the decoded call *shape* and expected effects.

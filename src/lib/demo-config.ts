@@ -1,6 +1,6 @@
 import { defineChain } from "viem";
 
-/** Whitechain Testnet — the chain the Chainwall tenant lives on. */
+/** Whitechain Testnet, the chain the Chainwall tenant lives on. */
 export const whitechainTestnet = defineChain({
   id: 1874,
   name: "Whitechain Testnet",
@@ -12,7 +12,7 @@ export const whitechainTestnet = defineChain({
   testnet: true,
 });
 
-/** Sepolia Testnet — the mirror Chainwall tenant (also has a SafeFactory). */
+/** Sepolia Testnet, the mirror Chainwall tenant (also has a SafeFactory). */
 export const sepoliaTestnet = defineChain({
   id: 11155111,
   name: "Sepolia Testnet",

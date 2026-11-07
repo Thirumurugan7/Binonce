@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const { operationId } = await req.json();
     const path = opFile(String(operationId));
     if (!existsSync(path)) {
-      return Response.json({ ok: false, error: "proposal not found — propose again" }, { status: 404 });
+      return Response.json({ ok: false, error: "proposal not found, propose again" }, { status: 404 });
     }
 
     // dry simulate: catches the spending cap before spending gas

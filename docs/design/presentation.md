@@ -4,13 +4,13 @@ What the research says about winning hackathon demos, applied to this project.
 
 ## What judges actually reward
 
-- **A real, working project** — the demo "proves it works," not that it could. Ours executes a
+- **A real, working project**, the demo "proves it works," not that it could. Ours executes a
   real on-chain 7702 drain; lean into that ("this is really happening, here are the tx hashes").
-- **A clear "why"** — state the problem, who's hurt, why it matters, in the first 20 seconds.
+- **A clear "why"**, state the problem, who's hurt, why it matters, in the first 20 seconds.
   Ours: "Last week $6B left Binance through this exact mechanism."
-- **A polished, explorable UI** — judges can look at it and get it instantly. The Binance clone does that.
-- **One memorable moment** — the attack draining a familiar dashboard to zero.
-- **Clean README + architecture** — judges skim it; ours leads with the "why" and a 60-second run.
+- **A polished, explorable UI**, judges can look at it and get it instantly. The Binance clone does that.
+- **One memorable moment**, the attack draining a familiar dashboard to zero.
+- **Clean README + architecture**, judges skim it; ours leads with the "why" and a 60-second run.
 
 ## The #1 risk: live-demo failure
 
@@ -35,8 +35,8 @@ was really happening underneath." See [ui-ux.md](./ui-ux.md).
 
 ## 4-minute demo script
 
-1. **Hook (20s)** — "On Oct 29, $6.3B left Binance in 20 minutes. Here's exactly how, and how to stop it."
-2. **The break-in (60s)** — open the Binance dashboard ($2.5M). Click **Launch attack**. Narrate the
+1. **Hook (20s)**, "On Oct 29, $6.3B left Binance in 20 minutes. Here's exactly how, and how to stop it."
+2. **The break-in (60s)**, open the Binance dashboard ($2.5M). Click **Launch attack**. Narrate the
    trace: 50 authorizations, one nonce matches, the wallet is delegated to a sweeper, drained to zero.
    Point at the real tx hashes. "A valid signature was all it took."
 3. **The three parts (90s)** —
@@ -45,12 +45,12 @@ was really happening underneath." See [ui-ux.md](./ui-ux.md).
      `OKGuard` revert, or step through the vault walkthrough if the fork isn't wired yet.)
    - 📕 **The Blacklist** (Arkiv): a public, queryable list of sweeper contracts; run a live query.
    - 🚨 **The Alarm** (Chainlink CRE): detects the delegation and fires on-chain.
-4. **Close (30s)** — "A valid signature is not an approved action." One line on what's next (ship The Lock on Arbitrum).
+4. **Close (30s)**, "A valid signature is not an approved action." One line on what's next (ship The Lock on Arbitrum).
 
 ## Judge Q&A (rehearse these)
 
-- *"Is this really on-chain?"* → Yes — real contracts, real type-4 tx, real `0xef0100` delegation. Here are the hashes. Also runs on Sepolia.
-- *"Doesn't a leaked EOA key lose everything anyway?"* → Yes. That's the point — don't hold treasury in an EOA. The Lock holds it in a contract and only runs approved actions.
+- *"Is this really on-chain?"* → Yes, real contracts, real type-4 tx, real `0xef0100` delegation. Here are the hashes. Also runs on Sepolia.
+- *"Doesn't a leaked EOA key lose everything anyway?"* → Yes. That's the point, don't hold treasury in an EOA. The Lock holds it in a contract and only runs approved actions.
 - *"Isn't this just Chainwall's product?"* → Chainwall powers The Lock. We built the attack replay, The Blacklist, and The Alarm around it.
 
 ## Submission (Devpost / ETHGlobal)

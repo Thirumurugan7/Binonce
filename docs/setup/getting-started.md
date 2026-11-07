@@ -2,7 +2,7 @@
 
 The app runs the **real** EIP-7702 attack on-chain. Two ways to run it.
 
-## Local (recommended for demos — no gas, no faucet, offline)
+## Local (recommended for demos, no gas, no faucet, offline)
 
 Needs [Foundry](https://getfoundry.sh) (`anvil`) and Node 18+.
 
@@ -13,7 +13,7 @@ npm run setup        # terminal 2: deploys TestUSD + Sweeper, writes .env
 npm run dev          # http://localhost:3000/attack  → click "Launch attack"
 ```
 
-Every click uses a fresh victim (minted 2,500,000 tUSD) and drains it — repeatable, instant.
+Every click uses a fresh victim (minted 2,500,000 tUSD) and drains it, repeatable, instant.
 `/styleguide` shows the design system.
 
 Why local for the pitch: it's real (real contracts, real 7702 delegation, real drain) **and**

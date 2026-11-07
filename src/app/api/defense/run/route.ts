@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   if (activeRun) {
     const busy = new ReadableStream({
       start(c) {
-        c.enqueue(frame({ step: "fatal", t: Date.now(), msg: "A run is already in progress — wait for it to finish, then press Run again." }));
+        c.enqueue(frame({ step: "fatal", t: Date.now(), msg: "A run is already in progress, wait for it to finish, then press Run again." }));
         c.enqueue(frame({ step: "closed", t: Date.now() }));
         c.close();
       },

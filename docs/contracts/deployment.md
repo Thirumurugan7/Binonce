@@ -29,7 +29,7 @@ npm run setup
 | `Sweeper(attacker)` | relayer | `ATTACKER` fixed at deploy; must equal `ATTACKER_ADDR` |
 | mint + delegation + sweep (per run) | relayer | the attack itself; victim minted fresh each run |
 
-The **victim needs no ETH** — the relayer pays all gas, and the victim is generated per attack run.
+The **victim needs no ETH**, the relayer pays all gas, and the victim is generated per attack run.
 
 ## Verify
 

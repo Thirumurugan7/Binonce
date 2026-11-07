@@ -26,7 +26,7 @@ export const DEFENSE_STEPS: Step<DefenseKey>[] = [
     why: "Exactly the same trick as the attack page: with the operator’s stolen key, their account is delegated to the attacker’s sweeper. Their code becomes 0xef0100 followed by that contract." },
   { key: "detect", title: "Detect",
     now: "The operator isn’t really the operator any more.",
-    why: "A 7702-delegated account has code, so a signature from it is validated as a contract (ERC-1271) — and that call runs the sweeper, not the operator. The account can no longer prove it is a person." },
+    why: "A 7702-delegated account has code, so a signature from it is validated as a contract (ERC-1271), and that call runs the sweeper, not the operator. The account can no longer prove it is a person." },
   { key: "refuse", title: "Refuse",
     now: "The withdrawal is refused. Nothing moves.",
     why: "Validating the operator’s signature now routes to the sweeper, which can’t answer, so the call reverts with InvalidActorSignature. The vault balance stays the same and the attacker gets nothing." },

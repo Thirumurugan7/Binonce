@@ -173,12 +173,12 @@ export async function prepareSafeOp() {
  */
 export async function submitSafeOp(input: { sessionId: string; actorSig?: string; coSignerSig?: string; actorOwnerSig?: string }) {
   const s = sessions.get(input.sessionId);
-  if (!s) return { ok: false, reason: "session expired — prepare again" };
+  if (!s) return { ok: false, reason: "session expired, prepare again" };
   // Prefer the signatures persisted in the session (collected across account-switches); fall back to input.
   const actorSig = s.sigs.actorSig ?? input.actorSig;
   const coSignerSig = s.sigs.coSignerSig ?? input.coSignerSig;
   const actorOwnerSig = s.sigs.actorOwnerSig ?? input.actorOwnerSig;
-  if (!actorSig || !coSignerSig || !actorOwnerSig) return { ok: false, reason: "missing a signature — collect both approvals first" };
+  if (!actorSig || !coSignerSig || !actorOwnerSig) return { ok: false, reason: "missing a signature, collect both approvals first" };
   const { cfg, S, cw, cast } = ctx();
   const dir = s.dir;
   const f = (n: string) => path.join(dir, `${n}.json`);

@@ -1,4 +1,4 @@
-# 🚨 The Alarm — Chainlink CRE
+# 🚨 The Alarm, Chainlink CRE
 
 **Track:** Best workflow with CRE · **Prize:** $1,500 (single winner)
 
@@ -6,7 +6,7 @@
 
 ## What CRE is
 
-Chainlink Runtime Environment — an orchestration layer that connects blockchains to external
+Chainlink Runtime Environment, an orchestration layer that connects blockchains to external
 APIs, data sources, LLMs or AI agents. A trigger starts a workflow; it reads/calls things;
 it writes a result on-chain. It runs on Chainlink's decentralized nodes, so it's "trust a
 network," not "trust my server." **Simulation via the CRE CLI is enough to qualify.**

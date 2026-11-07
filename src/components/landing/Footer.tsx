@@ -13,8 +13,8 @@ export function Footer() {
         </div>
         <nav aria-label="Footer">
           <ul className="m-0 p-0 list-none flex flex-wrap gap-x-7 gap-y-3 text-[14px]">
-            <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href="/attack">Replay</a></li>
-            <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href="/defense">Defense</a></li>
+            <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href="/attack">Without Chainwall</a></li>
+            <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href="/defense">With Chainwall</a></li>
             <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href={DOCS} target="_blank" rel="noopener noreferrer">Docs</a></li>
             <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href={REPO} target="_blank" rel="noopener noreferrer">GitHub</a></li>
             <li><a className="bn-focus rounded text-bn-ink-2 hover:text-bn-ink" href="/styleguide">Design system</a></li>

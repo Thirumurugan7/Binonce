@@ -13,24 +13,24 @@
   --bn-card: 255 255 255;       /* #FFFFFF raised cards */
   --bn-ink: 21 20 15;           /* #15140F headings, primary */
   --bn-ink-2: 58 55 48;         /* #3A3730 body */
-  --bn-muted: 104 99 88;        /* #686358 metadata — 5.2:1 */
+  --bn-muted: 104 99 88;        /* #686358 metadata, 5.2:1 */
   --bn-line: 216 209 194;       /* #D8D1C2 hairlines */
-  /* night world (what the chain records) — dark in both themes */
+  /* night world (what the chain records), dark in both themes */
   --bn-night: 14 15 17;         /* #0E0F11 */
   --bn-night-2: 22 24 27;       /* #16181B */
   --bn-night-line: 40 43 48;    /* #282B30 */
   --bn-fog: 232 228 218;        /* #E8E4DA text on night */
-  --bn-fog-2: 156 152 141;      /* #9C988D muted on night — 6.7:1 */
+  --bn-fog-2: 156 152 141;      /* #9C988D muted on night, 6.7:1 */
   /* signal */
   --bn-ember: 229 67 31;        /* #E5431F fills + large text */
-  --bn-ember-ink: 178 49 14;    /* #B2310E small ember text — 5.5:1 */
+  --bn-ember-ink: 178 49 14;    /* #B2310E small ember text, 5.5:1 */
   --bn-ember-glow: 255 107 69;  /* #FF6B45 ember on night */
-  --bn-seal: 31 122 89;         /* #1F7A59 held / live — 4.6:1 */
+  --bn-seal: 31 122 89;         /* #1F7A59 held / live, 4.6:1 */
   --bn-seal-glow: 94 201 156;   /* #5EC99C */
-  --bn-amber: 138 87 11;        /* #8A570B warning — 5.3:1 */
+  --bn-amber: 138 87 11;        /* #8A570B warning, 5.3:1 */
   --bn-amber-glow: 233 180 76;  /* #E9B44C */
-  --bn-gold: 240 185 11;        /* #F0B90B exchange gold — the mark's gem */
-  --bn-gold-soft: 214 169 64;   /* #D6A940 muted gold — the spare nonces */
+  --bn-gold: 240 185 11;        /* #F0B90B exchange gold, the mark's gem */
+  --bn-gold-soft: 214 169 64;   /* #D6A940 muted gold, the spare nonces */
   --bn-info: 44 84 196;         /* #2C54C4 */
   --bn-shadow: 21 20 15;
   --bn-hl: 178 49 14;           /* highlight + selection: ember-ink, white text 6.3:1 */
@@ -44,14 +44,14 @@
   --bn-paper: 17 17 16;         /* #111110 */
   --bn-paper-2: 25 25 23;       /* #191917 */
   --bn-card: 29 29 27;          /* #1D1D1B */
-  --bn-ink: 238 234 225;        /* #EEEAE1 — 16:1 */
+  --bn-ink: 238 234 225;        /* #EEEAE1, 16:1 */
   --bn-ink-2: 201 196 185;      /* #C9C4B9 */
-  --bn-muted: 154 149 138;      /* #9A958A — 6.6:1 */
+  --bn-muted: 154 149 138;      /* #9A958A, 6.6:1 */
   --bn-line: 50 49 45;          /* #32312D */
   --bn-night: 8 9 10;           /* #08090A */
   --bn-night-2: 16 17 19;       /* #101113 */
   --bn-night-line: 38 40 44;    /* #26282C */
-  --bn-ember-ink: 255 125 92;   /* #FF7D5C ember text on soot — 6.9:1 */
+  --bn-ember-ink: 255 125 92;   /* #FF7D5C ember text on soot, 6.9:1 */
   --bn-seal: 88 196 150;        /* #58C496 */
   --bn-amber: 228 172 70;       /* #E4AC46 */
   --bn-gold: 245 197 44;        /* #F5C52C brighter gem on night */
@@ -85,7 +85,7 @@ body {
 
 .scroll-nice::-webkit-scrollbar-track { background: transparent; }
 
-/* Brand focus ring — visible on paper and night. */
+/* Brand focus ring, visible on paper and night. */
 .bn-focus:focus-visible, .bn-scope :focus-visible {
   outline: 2px solid rgb(var(--bn-ember));
   outline-offset: 3px;

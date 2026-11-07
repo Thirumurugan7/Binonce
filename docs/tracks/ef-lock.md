@@ -1,14 +1,14 @@
-# 🔒 The Lock — Ethereum Foundation
+# 🔒 The Lock, Ethereum Foundation
 
 **Track:** Best CROPS App · **Prize:** 1st $2,000 · 2nd $1,000 · 3rd $500
-**Stretch:** Alt Mempool (EIP-8141) — 1st $2,500 · 2nd $1,500 · 3rd $1,000
+**Stretch:** Alt Mempool (EIP-8141), 1st $2,500 · 2nd $1,500 · 3rd $1,000
 
 EF places each project in **at most one** EF prize. Submit to EF; judges pick the fitting track.
 Build for CROPS; if the 8141 stretch works, you're also eligible for Alt Mempool.
 
 **Simple version:** show the Binance attack draining an unlocked wallet, then failing against a wallet behind The Lock (Chainwall).
 
-## Threat model (get this right — judges will ask)
+## Threat model (get this right, judges will ask)
 
 - Funds in a **plain EOA** with a leaked key are gone; 7702 just makes the sweep easy.
 - Our claim is **not** "Chainwall blocks 7702."
@@ -30,10 +30,10 @@ On a local Arbitrum fork (Anvil):
 - [ ] Public repo under FOSS license (MIT / Apache-2.0 / GPL / MPL)
 - [ ] README a judge can run
 - [ ] README section titled **CROPS**:
-  - **C** — what we control that users depend on (Alarm, UI, RPC) and what happens if it's gone → The Lock's on-chain check still protects funds.
-  - **O** — license + can users build/run from the repo alone. ⚠️ Chainwall CLI is BUSL-1.1 (not FOSS); state the trade-off honestly.
-  - **P** — what our servers / RPC / indexers learn about the protected treasury.
-  - **S** — key handling, trust assumptions. (Lead property.)
+  - **C**, what we control that users depend on (Alarm, UI, RPC) and what happens if it's gone → The Lock's on-chain check still protects funds.
+  - **O**, license + can users build/run from the repo alone. ⚠️ Chainwall CLI is BUSL-1.1 (not FOSS); state the trade-off honestly.
+  - **P**, what our servers / RPC / indexers learn about the protected treasury.
+  - **S**, key handling, trust assumptions. (Lead property.)
 - [ ] Demo video ≤ 3 min showing the lead property at the moment it matters (backend off, attack still fails)
 - [ ] No third-party trackers/analytics in the client
 - [ ] Keys/personal data stay on device, or README says why not

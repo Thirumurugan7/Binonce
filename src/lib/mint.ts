@@ -16,15 +16,15 @@ export interface MintResult {
 }
 
 /**
- * Mint `amount` (human tUSD) to the victim on the SELECTED network — the same chain, token and victim
+ * Mint `amount` (human tUSD) to the victim on the SELECTED network, the same chain, token and victim
  * the attack drains and the balance reads (see lib/attack.ts and /api/balance). The relayer pays gas.
  * `chainId` defaults to Whitechain (1874) to preserve the single-chain behaviour.
  */
 export async function mintToVictim(amount: string, chainId?: number): Promise<MintResult> {
   const relayerPk = process.env.RELAYER_PK as Hex | undefined;
   const victimPk = process.env.VICTIM_PK as Hex | undefined;
-  if (!relayerPk) throw new Error("RELAYER_PK missing — run setup first.");
-  if (!victimPk) throw new Error("VICTIM_PK missing — run setup first.");
+  if (!relayerPk) throw new Error("RELAYER_PK missing, run setup first.");
+  if (!victimPk) throw new Error("VICTIM_PK missing, run setup first.");
   const n = Number(amount);
   if (!Number.isFinite(n) || n <= 0) throw new Error("Amount must be a positive number.");
 
