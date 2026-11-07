@@ -417,7 +417,7 @@ export function AttackPage() {
       </div>
 
       <Toaster />
-      <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorer} arkiv={arkiv} />
+      <MintModal open={mintOpen} onClose={() => setMintOpen(false)} onMinted={onMinted} explorer={explorer} arkiv={arkiv} chainId={activeChainId} />
     </>
   );
 }

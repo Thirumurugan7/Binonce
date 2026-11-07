@@ -11,13 +11,14 @@ interface MintResult { tx: string; block: number; amount: string; balance: strin
 const PRESETS = ["100000", "1000000", "2500000"];
 
 export function MintModal({
-  open, onClose, onMinted, explorer, arkiv,
+  open, onClose, onMinted, explorer, arkiv, chainId,
 }: {
   open: boolean;
   onClose: () => void;
   onMinted: (balance: number) => void;
   explorer: string | null;
   arkiv: boolean;
+  chainId?: number;
 }) {
   const [amount, setAmount] = useState("2500000");
   const [state, setState] = useState<"idle" | "minting" | "done" | "error">("idle");
@@ -41,7 +42,7 @@ export function MintModal({
     const tid = toast.loading({ title: `Minting ${money(Number(amount)).replace(".00", "")} tUSD`, body: "Topping up the test wallet. The relayer pays the gas." });
     try {
       const r = await fetch("/api/mint", {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amount }),
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amount, chain: chainId }),
       }).then((x) => x.json());
       if (!r.ok) throw new Error(r.error || "Mint failed");
       setResult(r);
